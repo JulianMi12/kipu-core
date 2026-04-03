@@ -1,0 +1,19 @@
+# Directorios de compilación
+target/
+bin/
+build/
+
+# Configuración del IDE
+.idea/
+*.iml
+.settings/
+.project/
+.classpath/
+
+# Logs y temporales
+*.log
+tmp/
+
+# Archivos pesados o no necesarios para lógica
+.git/
+node_modules/

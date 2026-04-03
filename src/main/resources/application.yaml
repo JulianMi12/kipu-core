@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: kipu
+  datasource:
+    url: jdbc:postgresql://localhost:5432/kipu_db
+    username: admin
+    password: JuliCaro0920
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
