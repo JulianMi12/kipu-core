@@ -1,33 +1,63 @@
-HELP.md
+# ==========================================
+# KIPU CORE - ESTRUCTURA DE COMPILACIÓN
+# ==========================================
 target/
+bin/
+build/
+out/
 .mvn/wrapper/maven-wrapper.jar
+# Mantener carpetas de target si son necesarias para tests específicos (opcional)
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-### IntelliJ IDEA ###
-.idea
+# ==========================================
+# CONFIGURACIÓN DE IDE (IntelliJ, VSCode, STS)
+# ==========================================
+.idea/
 *.iws
 *.iml
 *.ipr
-
-### NetBeans ###
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+.apt_generated
+.springBeans
+.sts4-cache
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
-### VS Code ###
-.vscode/
+# ==========================================
+# INFRAESTRUCTURA Y DATOS LOCALES
+# ==========================================
+# Ignorar logs de la aplicación
+*.log
+logs/
+tmp/
+
+# Ignorar datos persistentes de Docker (si mapeas volúmenes)
+db-data/
+postgres-data/
+
+# Archivos de entorno y secretos (¡CRÍTICO!)
+.env
+*.jks
+*.p12
+*.key
+/src/main/resources/*.jks
+
+# ==========================================
+# SISTEMA OPERATIVO
+# ==========================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# ASISTENTES IA (Opcional: si quieres que git ignore sus caches)
+# ==========================================
+.claude/
