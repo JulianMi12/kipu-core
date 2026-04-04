@@ -17,7 +17,9 @@ spring:
       ddl-auto: validate
     properties:
       hibernate:
+        default_schema: identity
         dialect: org.hibernate.dialect.PostgreSQLDialect
   flyway:
     enabled: true
+    schemas: identity,contacts
     baseline-on-migrate: true

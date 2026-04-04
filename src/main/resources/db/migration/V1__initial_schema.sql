@@ -1,7 +1,12 @@
+-- Creación de Schemas
+CREATE SCHEMA IF NOT EXISTS identity;
+CREATE SCHEMA IF NOT EXISTS contacts;
+
 -- ==========================================
--- DOMINIO DE IDENTIDAD (IAM)
+-- SCHEMA: identity
 -- ==========================================
-CREATE TABLE users (
+
+CREATE TABLE identity.users (
     id            UUID PRIMARY KEY,
     email         VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -9,20 +14,28 @@ CREATE TABLE users (
     created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE identity.refresh_tokens (
+    id          UUID PRIMARY KEY,
+    user_id     UUID NOT NULL REFERENCES identity.users(id) ON DELETE CASCADE,
+    token       VARCHAR(512) UNIQUE NOT NULL,
+    expiry_date TIMESTAMPTZ NOT NULL,
+    revoked     BOOLEAN DEFAULT FALSE
+);
+
 -- ==========================================
--- DOMINIO DE CONTACTOS (DIRECTORY)
+-- SCHEMA: contacts
 -- ==========================================
-CREATE TABLE user_tags (
+
+CREATE TABLE contacts.user_tags (
     id            UUID PRIMARY KEY,
-    owner_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    owner_user_id UUID NOT NULL REFERENCES identity.users(id) ON DELETE CASCADE,
     name          VARCHAR(50) NOT NULL,
     color_hex     VARCHAR(7) DEFAULT '#0288d1'
 );
 
-CREATE TABLE contacts (
+CREATE TABLE contacts.contacts (
     id                 UUID PRIMARY KEY,
-    owner_user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    is_self            BOOLEAN NOT NULL DEFAULT FALSE,
+    owner_user_id      UUID NOT NULL REFERENCES identity.users(id) ON DELETE CASCADE,
     first_name         VARCHAR(100) NOT NULL,
     last_name          VARCHAR(100),
     primary_email      VARCHAR(255),
@@ -30,14 +43,28 @@ CREATE TABLE contacts (
     created_at         TIMESTAMPTZ DEFAULT NOW()
 );
 
--- RELACIÓN MUCHOS A MUCHOS: CONTACTOS <-> ETIQUETAS
-CREATE TABLE contact_tags (
-    contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
-    tag_id     UUID NOT NULL REFERENCES user_tags(id) ON DELETE CASCADE,
+CREATE TABLE contacts.contact_tags (
+    contact_id UUID NOT NULL REFERENCES contacts.contacts(id) ON DELETE CASCADE,
+    tag_id     UUID NOT NULL REFERENCES contacts.user_tags(id) ON DELETE CASCADE,
     PRIMARY KEY (contact_id, tag_id)
 );
 
+-- ==========================================
+-- SCHEMA: identity (Ampliación para Onboarding)
+-- ==========================================
+
+CREATE TABLE identity.user_profiles (
+    user_id              UUID PRIMARY KEY REFERENCES identity.users(id) ON DELETE CASCADE,
+    self_contact_id      UUID UNIQUE REFERENCES contacts.contacts(id) ON DELETE SET NULL,
+    onboarding_completed BOOLEAN DEFAULT FALSE,
+    birthdate            DATE,
+    updated_at           TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==========================================
 -- ÍNDICES PARA RENDIMIENTO
-CREATE INDEX idx_contacts_owner ON contacts(owner_user_id);
-CREATE INDEX idx_tags_owner ON user_tags(owner_user_id);
-CREATE INDEX idx_contacts_tags_tag ON contact_tags(tag_id);
+-- ==========================================
+CREATE INDEX idx_users_email ON identity.users(email);
+CREATE INDEX idx_refresh_tokens_user ON identity.refresh_tokens(user_id);
+CREATE INDEX idx_contacts_owner ON contacts.contacts(owner_user_id);
+CREATE INDEX idx_tags_owner ON contacts.user_tags(owner_user_id);
