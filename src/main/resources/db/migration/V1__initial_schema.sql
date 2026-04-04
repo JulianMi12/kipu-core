@@ -53,9 +53,10 @@ CREATE TABLE contacts.contact_tags (
 -- SCHEMA: identity (Ampliación para Onboarding)
 -- ==========================================
 
-CREATE TABLE identity.user_profiles (
+CREATE TABLE identity.user_kyc (
     user_id              UUID PRIMARY KEY REFERENCES identity.users(id) ON DELETE CASCADE,
     self_contact_id      UUID UNIQUE REFERENCES contacts.contacts(id) ON DELETE SET NULL,
+    status               VARCHAR(20) DEFAULT 'PENDING',
     onboarding_completed BOOLEAN DEFAULT FALSE,
     birthdate            DATE,
     updated_at           TIMESTAMPTZ DEFAULT NOW()

@@ -19,8 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UserController implements UserApi {
 
-  private final GetUserProfileUseCase getUserProfileUseCase;
   private final UserRestMapper userRestMapper;
+  private final GetUserProfileUseCase getUserProfileUseCase;
 
   @Override
   @GetMapping("/basic-info")

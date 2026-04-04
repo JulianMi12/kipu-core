@@ -19,8 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class RefreshUseCase {
 
-  private final TokenProviderPort tokenProviderPort;
   private final UserRepository userRepository;
+  private final TokenProviderPort tokenProviderPort;
   private final RefreshTokenRepository refreshTokenRepository;
 
   public AuthTokens execute(RefreshCommand command) {

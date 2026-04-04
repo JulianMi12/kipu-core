@@ -32,11 +32,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController implements AuthApi {
 
-  private final RegisterUserUseCase registerUserUseCase;
-  private final LoginUserUseCase loginUserUseCase;
-  private final RefreshUseCase refreshUseCase;
   private final LogoutUseCase logoutUseCase;
   private final UserRestMapper userRestMapper;
+  private final RefreshUseCase refreshUseCase;
+  private final LoginUserUseCase loginUserUseCase;
+  private final RegisterUserUseCase registerUserUseCase;
 
   @Override
   @PostMapping("/register")

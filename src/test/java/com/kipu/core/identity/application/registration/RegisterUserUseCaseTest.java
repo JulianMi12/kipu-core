@@ -3,7 +3,12 @@ package com.kipu.core.identity.application.registration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.kipu.core.identity.application.port.out.PasswordEncoderPort;
 import com.kipu.core.identity.application.port.out.TokenProviderPort;
@@ -11,6 +16,7 @@ import com.kipu.core.identity.domain.exception.UserAlreadyExistsException;
 import com.kipu.core.identity.domain.model.AuthTokens;
 import com.kipu.core.identity.domain.model.User;
 import com.kipu.core.identity.domain.repository.RefreshTokenRepository;
+import com.kipu.core.identity.domain.repository.UserKycRepository;
 import com.kipu.core.identity.domain.repository.UserRepository;
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -29,6 +35,7 @@ class RegisterUserUseCaseTest {
   @Mock private PasswordEncoderPort passwordEncoderPort;
   @Mock private TokenProviderPort tokenProviderPort;
   @Mock private RefreshTokenRepository refreshTokenRepository;
+  @Mock private UserKycRepository userKycRepository;
 
   @InjectMocks private RegisterUserUseCase registerUserUseCase;
 
@@ -40,8 +47,13 @@ class RegisterUserUseCaseTest {
     String encodedPassword = "encoded-hash";
     RegisterUserCommand command = new RegisterUserCommand(email, rawPassword);
 
-    User mockUser =
-        User.reconstitute(UUID.randomUUID(), email, encodedPassword, true, OffsetDateTime.now());
+    User mockUser = User.reconstitute(
+        UUID.randomUUID(),
+        email,
+        encodedPassword,
+        true,
+        OffsetDateTime.now()
+    );
     AuthTokens tokens = new AuthTokens("access", "refresh", OffsetDateTime.now().plusDays(1));
 
     when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
@@ -62,6 +74,11 @@ class RegisterUserUseCaseTest {
       verify(userRepository).save(mockUser);
       verify(refreshTokenRepository)
           .save(mockUser.getId(), tokens.refreshToken(), tokens.refreshTokenExpiresAt());
+
+      verify(userKycRepository).save(argThat(kyc ->
+          kyc.getUserId().equals(mockUser.getId()) &&
+              kyc.getStatus().name().equals("PENDING")
+      ));
     }
   }
 
