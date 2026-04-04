@@ -4,7 +4,7 @@
 target/
 bin/
 build/
-out/
+src/main/java/com/kipu/core/identity/application/port/out/
 .mvn/wrapper/maven-wrapper.jar
 # Mantener carpetas de target si son necesarias para tests específicos (opcional)
 !**/src/main/**/target/

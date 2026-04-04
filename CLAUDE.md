@@ -39,3 +39,16 @@ Kipu utiliza **Arquitectura Hexagonal (Puertos y Adaptadores)** con **Domain-Dri
 ## 🛡 Seguridad
 - Usar siempre `SecurityContextHolder` para obtener el usuario actual.
 - Validar siempre que el `owner_user_id` del recurso coincida con el usuario autenticado (Multitenancy lógico).
+
+## Logging Standard
+- **Library:** Use Lombok `@Slf4j`.
+- **Naming:** Follow the pattern `[Action] Message - Metadata: {}`.
+- **Lifecycle:** Every Use Case must log its start and successful end.
+    - Start: `log.info("[{}] Starting process with id: {}", className, id);`
+    - End: `log.info("[{}] Process completed successfully for id: {}", className, id);`
+- **Error Logging:** Always log the exception message and context in ERROR level.
+    - `log.error("[{}] Error occurred during {}: {}", className, action, e.getMessage());`
+- **Security/PII:** NEVER log sensitive data:
+    - No passwords, no plain secrets, no full JWT tokens (only first 10 chars if needed).
+    - Avoid logging emails in INFO level; use UserID instead.
+- **Traceability:** In Adapters (DB/External APIs), use DEBUG level for raw payloads and INFO for execution status.
