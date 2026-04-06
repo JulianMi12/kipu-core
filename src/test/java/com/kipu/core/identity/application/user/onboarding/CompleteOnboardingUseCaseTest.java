@@ -15,6 +15,7 @@ import com.kipu.core.identity.domain.exception.UserNotFoundException;
 import com.kipu.core.identity.domain.model.KycStatus;
 import com.kipu.core.identity.domain.model.User;
 import com.kipu.core.identity.domain.model.UserKyc;
+import com.kipu.core.identity.domain.port.out.ContactProfileInfo;
 import com.kipu.core.identity.domain.port.out.ProfileSyncPort;
 import com.kipu.core.identity.domain.repository.UserKycRepository;
 import com.kipu.core.identity.domain.repository.UserRepository;
@@ -60,10 +61,12 @@ class CompleteOnboardingUseCaseTest {
     when(userKyc.getStatus()).thenReturn(KycStatus.PENDING);
     when(userKyc.isOnboardingCompleted()).thenReturn(false);
 
+    ContactProfileInfo profileInfo = new ContactProfileInfo(selfContactId, "Julian", "Miranda");
+
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
     when(userKycRepository.findByUserId(userId)).thenReturn(Optional.of(userKyc));
     when(profileSyncPort.createSelfContact(any(), any(), any(), any(), any()))
-        .thenReturn(selfContactId);
+        .thenReturn(profileInfo);
 
     // Act
     UserProfileResult result = completeOnboardingUseCase.execute(command);

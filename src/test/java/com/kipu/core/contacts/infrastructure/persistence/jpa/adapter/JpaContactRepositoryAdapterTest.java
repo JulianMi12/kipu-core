@@ -1,5 +1,6 @@
 package com.kipu.core.contacts.infrastructure.persistence.jpa.adapter;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -11,6 +12,7 @@ import com.kipu.core.contacts.infrastructure.persistence.jpa.repository.JpaConta
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -67,5 +69,51 @@ class JpaContactRepositoryAdapterTest {
     assertEquals(birthdate, capturedEntity.getBirthdate());
     assertEquals(attributes, capturedEntity.getDynamicAttributes());
     assertEquals(now, capturedEntity.getCreatedAt());
+  }
+
+  @Test
+  @DisplayName("findById: Should return domain contact when entity exists in DB")
+  void findById_WhenExists_ShouldReturnDomainContact() {
+    // Arrange
+    UUID contactId = UUID.randomUUID();
+    UUID ownerId = UUID.randomUUID();
+
+    // Creamos la entidad JPA que simula estar en la BD
+    ContactJpaEntity jpaEntity = new ContactJpaEntity();
+    jpaEntity.setId(contactId);
+    jpaEntity.setOwnerUserId(ownerId);
+    jpaEntity.setFirstName("Julian");
+    jpaEntity.setLastName("Miranda");
+    jpaEntity.setPrimaryEmail("dev@kipu.com");
+    jpaEntity.setDynamicAttributes(Map.of());
+
+    when(jpaContactRepository.findById(contactId)).thenReturn(Optional.of(jpaEntity));
+
+    // Act
+    Optional<Contact> result = jpaContactRepositoryAdapter.findById(contactId);
+
+    // Assert
+    assertThat(result).isPresent();
+    assertEquals(contactId, result.get().getId());
+    assertEquals(ownerId, result.get().getOwnerUserId());
+    assertEquals("Julian", result.get().getFirstName());
+    assertEquals("Miranda", result.get().getLastName());
+
+    verify(jpaContactRepository).findById(contactId);
+  }
+
+  @Test
+  @DisplayName("findById: Should return empty Optional when entity does not exist")
+  void findById_WhenNotExists_ShouldReturnEmpty() {
+    // Arrange
+    UUID contactId = UUID.randomUUID();
+    when(jpaContactRepository.findById(contactId)).thenReturn(Optional.empty());
+
+    // Act
+    Optional<Contact> result = jpaContactRepositoryAdapter.findById(contactId);
+
+    // Assert
+    assertThat(result).isEmpty();
+    verify(jpaContactRepository).findById(contactId);
   }
 }

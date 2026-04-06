@@ -5,10 +5,10 @@ import com.kipu.core.identity.domain.exception.ProfileSyncException;
 import com.kipu.core.identity.domain.exception.UserNotFoundException;
 import com.kipu.core.identity.domain.model.User;
 import com.kipu.core.identity.domain.model.UserKyc;
+import com.kipu.core.identity.domain.port.out.ContactProfileInfo;
 import com.kipu.core.identity.domain.port.out.ProfileSyncPort;
 import com.kipu.core.identity.domain.repository.UserKycRepository;
 import com.kipu.core.identity.domain.repository.UserRepository;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,9 +30,9 @@ public class CompleteOnboardingUseCase {
     User user = this.getUser(command);
     UserKyc userKyc = this.getUserKyc(command);
 
-    UUID selfContactId = this.syncWithContactsModule(user.getEmail(), command);
+    ContactProfileInfo contactInfo = this.syncWithContactsModule(user.getEmail(), command);
 
-    userKyc.completeOnboarding(selfContactId);
+    userKyc.completeOnboarding(contactInfo.contactId());
     userKycRepository.save(userKyc);
 
     log.info(
@@ -44,7 +44,9 @@ public class CompleteOnboardingUseCase {
         user.isActive(),
         user.getCreatedAt(),
         userKyc.getStatus(),
-        userKyc.isOnboardingCompleted());
+        userKyc.isOnboardingCompleted(),
+        contactInfo.firstName(),
+        contactInfo.lastName());
   }
 
   private UserKyc getUserKyc(CompleteOnboardingCommand command) {
@@ -69,7 +71,8 @@ public class CompleteOnboardingUseCase {
             });
   }
 
-  private UUID syncWithContactsModule(String email, CompleteOnboardingCommand command) {
+  private ContactProfileInfo syncWithContactsModule(
+      String email, CompleteOnboardingCommand command) {
     try {
       return profileSyncPort.createSelfContact(
           command.userId(), command.firstName(), command.lastName(), email, command.birthdate());

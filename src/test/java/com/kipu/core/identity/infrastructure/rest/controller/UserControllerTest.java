@@ -46,7 +46,8 @@ class UserControllerTest {
     String email = "dev@kipu.com";
 
     UserProfileResult result =
-        new UserProfileResult(userId, email, true, now, KycStatus.PENDING, false);
+        new UserProfileResult(
+            userId, email, true, now, KycStatus.PENDING, false, "Julian", "Miranda");
     UserProfileResponse response =
         UserProfileResponse.builder().id(userId).email(email).active(true).createdAt(now).build();
 

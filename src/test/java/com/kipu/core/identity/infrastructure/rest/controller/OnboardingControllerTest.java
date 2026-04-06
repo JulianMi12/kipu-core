@@ -55,7 +55,8 @@ class OnboardingControllerTest {
     OnboardingRequest request = new OnboardingRequest("Julian", "Miranda", birthdate);
 
     UserProfileResult result =
-        new UserProfileResult(userId, email, true, now, KycStatus.COMPLETED, true);
+        new UserProfileResult(
+            userId, email, true, now, KycStatus.COMPLETED, true, "Julian", "Miranda");
 
     UserProfileResponse response =
         UserProfileResponse.builder().id(userId).email(email).active(true).createdAt(now).build();

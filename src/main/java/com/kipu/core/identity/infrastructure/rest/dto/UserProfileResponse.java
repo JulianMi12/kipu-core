@@ -15,4 +15,6 @@ public class UserProfileResponse {
   private final OffsetDateTime createdAt;
   private final KycStatus kycStatus;
   private final boolean onboardingCompleted;
+  private final String firstName;
+  private final String lastName;
 }

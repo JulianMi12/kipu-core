@@ -10,4 +10,6 @@ public record UserProfileResult(
     boolean active,
     OffsetDateTime createdAt,
     KycStatus kycStatus,
-    boolean onboardingCompleted) {}
+    boolean onboardingCompleted,
+    String firstName,
+    String lastName) {}

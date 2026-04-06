@@ -9,7 +9,11 @@ import static org.mockito.Mockito.when;
 import com.kipu.core.contacts.application.create.CreateContactCommand;
 import com.kipu.core.contacts.application.create.CreateContactResult;
 import com.kipu.core.contacts.application.create.CreateContactUseCase;
+import com.kipu.core.contacts.domain.model.Contact;
+import com.kipu.core.contacts.domain.repository.ContactRepository;
+import com.kipu.core.identity.domain.port.out.ContactProfileInfo;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +27,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ContactsProfileSyncAdapterTest {
 
   @Mock private CreateContactUseCase createContactUseCase;
+  @Mock private ContactRepository contactRepository;
+  @Mock private Contact mockContact;
 
   @InjectMocks private ContactsProfileSyncAdapter contactsProfileSyncAdapter;
 
@@ -42,12 +48,12 @@ class ContactsProfileSyncAdapterTest {
     when(createContactUseCase.execute(any(CreateContactCommand.class))).thenReturn(mockResult);
 
     // Act
-    UUID resultId =
+    ContactProfileInfo resultId =
         contactsProfileSyncAdapter.createSelfContact(userId, firstName, lastName, email, birthdate);
 
     // Assert
     assertNotNull(resultId);
-    assertEquals(expectedContactId, resultId);
+    assertEquals(expectedContactId, resultId.contactId());
 
     // Verificación de la construcción del comando (Captor para asegurar integridad)
     ArgumentCaptor<CreateContactCommand> commandCaptor =
@@ -62,5 +68,48 @@ class ContactsProfileSyncAdapterTest {
     assertEquals(email, capturedCommand.primaryEmail());
     assertEquals(birthdate, capturedCommand.birthdate());
     assertNotNull(capturedCommand.dynamicAttributes());
+  }
+
+  @Test
+  @DisplayName("getContactById: Should return ContactProfileInfo when contact exists")
+  void getContactById_WhenContactExists_ShouldReturnProfileInfo() {
+    // Arrange
+    UUID contactId = UUID.randomUUID();
+    String firstName = "Julian";
+    String lastName = "Miranda";
+
+    // Configuramos el mock de la entidad de dominio Contact
+    when(mockContact.getId()).thenReturn(contactId);
+    when(mockContact.getFirstName()).thenReturn(firstName);
+    when(mockContact.getLastName()).thenReturn(lastName);
+
+    when(contactRepository.findById(contactId)).thenReturn(Optional.of(mockContact));
+
+    // Act
+    Optional<ContactProfileInfo> result = contactsProfileSyncAdapter.getContactById(contactId);
+
+    // Assert
+    verify(contactRepository).findById(contactId);
+    assertNotNull(result);
+    assertEquals(true, result.isPresent());
+    assertEquals(contactId, result.get().contactId());
+    assertEquals(firstName, result.get().firstName());
+    assertEquals(lastName, result.get().lastName());
+  }
+
+  @Test
+  @DisplayName("getContactById: Should return empty Optional when contact does not exist")
+  void getContactById_WhenContactDoesNotExist_ShouldReturnEmpty() {
+    // Arrange
+    UUID contactId = UUID.randomUUID();
+    when(contactRepository.findById(contactId)).thenReturn(Optional.empty());
+
+    // Act
+    Optional<ContactProfileInfo> result = contactsProfileSyncAdapter.getContactById(contactId);
+
+    // Assert
+    verify(contactRepository).findById(contactId);
+    assertNotNull(result);
+    assertEquals(false, result.isPresent());
   }
 }
