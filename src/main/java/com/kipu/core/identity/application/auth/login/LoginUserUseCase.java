@@ -29,7 +29,7 @@ public class LoginUserUseCase {
 
     Optional<User> userOpt = userRepository.findByEmail(command.email());
     if (userOpt.isEmpty()) {
-      log.warn("[LoginUserUseCase] Login failed - user not found");
+      log.error("[LoginUserUseCase] Login failed - user not found");
       throw new InvalidCredentialsException();
     }
     User user = userOpt.get();

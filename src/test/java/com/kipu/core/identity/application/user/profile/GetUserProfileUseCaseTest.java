@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.kipu.core.identity.domain.exception.UserNotFoundException;
 import com.kipu.core.identity.domain.model.User;
+import com.kipu.core.identity.domain.repository.UserKycRepository;
 import com.kipu.core.identity.domain.repository.UserRepository;
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class GetUserProfileUseCaseTest {
 
   @Mock private UserRepository userRepository;
+  @Mock private UserKycRepository userKycRepository;
 
   @InjectMocks private GetUserProfileUseCase getUserProfileUseCase;
 

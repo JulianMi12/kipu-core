@@ -1,25 +1,62 @@
+# ===================================================================
+# KIPU CORE SERVICE - CONFIGURACIÓN
+# ===================================================================
+
 kipu:
   security:
     jwt:
       secret: ${JWT_SECRET}
-      access-token-expiration-ms: 900000
-      refresh-token-expiration-ms: 604800000
+      access-token-expiration-ms: 7200000    # 15 Minutos
+      refresh-token-expiration-ms: 604800000 # 7 Días
 
 spring:
   application:
-    name: kipu
+    name: kipu-core-service
+
+  main:
+    banner-mode: console
+    log-startup-info: true
+
+  # --- PERSISTENCIA (POSTGRESQL) ---
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: KipuHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 5
+
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     properties:
       hibernate:
         default_schema: identity
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        highlight_sql: true
+
+  # --- MIGRACIONES (FLYWAY) ---
   flyway:
     enabled: true
-    schemas: identity,contacts
+    schemas:
+      - identity
+      - contacts
+    default-schema: identity
+    create-schemas: true
     baseline-on-migrate: true
+    clean-disabled: false # Habilitar solo en desarrollo local
+    on-validation-error: clean
+
+# --- GESTIÓN DE LOGS (ANTI-BASURA) ---
+logging:
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}"
+  level:
+    root: INFO
+    com.kipu: DEBUG
+    org.hibernate.orm.connections.pooling: ERROR
+    org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration: OFF

@@ -1,6 +1,5 @@
 package com.kipu.core.identity.domain.model;
 
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -15,11 +14,10 @@ public final class UserKyc {
   private UUID selfContactId;
   private KycStatus status;
   private boolean onboardingCompleted;
-  private LocalDate birthdate;
   private OffsetDateTime updatedAt;
 
   public static UserKyc createPending(UUID userId) {
-    return new UserKyc(userId, null, KycStatus.PENDING, false, null, OffsetDateTime.now());
+    return new UserKyc(userId, null, KycStatus.PENDING, false, OffsetDateTime.now());
   }
 
   public static UserKyc reconstitute(
@@ -27,8 +25,14 @@ public final class UserKyc {
       UUID selfContactId,
       KycStatus status,
       boolean onboardingCompleted,
-      LocalDate birthdate,
       OffsetDateTime updatedAt) {
-    return new UserKyc(userId, selfContactId, status, onboardingCompleted, birthdate, updatedAt);
+    return new UserKyc(userId, selfContactId, status, onboardingCompleted, updatedAt);
+  }
+
+  public void completeOnboarding(UUID selfContactId) {
+    this.selfContactId = selfContactId;
+    this.status = KycStatus.COMPLETED;
+    this.onboardingCompleted = true;
+    this.updatedAt = OffsetDateTime.now();
   }
 }

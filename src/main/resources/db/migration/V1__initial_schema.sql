@@ -1,7 +1,3 @@
--- Creación de Schemas
-CREATE SCHEMA IF NOT EXISTS identity;
-CREATE SCHEMA IF NOT EXISTS contacts;
-
 -- ==========================================
 -- SCHEMA: identity
 -- ==========================================
@@ -26,6 +22,7 @@ CREATE TABLE identity.refresh_tokens (
 -- SCHEMA: contacts
 -- ==========================================
 
+-- Tabla de Tags para categorizar contactos
 CREATE TABLE contacts.user_tags (
     id            UUID PRIMARY KEY,
     owner_user_id UUID NOT NULL REFERENCES identity.users(id) ON DELETE CASCADE,
@@ -33,16 +30,20 @@ CREATE TABLE contacts.user_tags (
     color_hex     VARCHAR(7) DEFAULT '#0288d1'
 );
 
+-- Tabla principal de Contactos
+-- Nota: 'birthdate' ahora vive aquí como un atributo de la persona
 CREATE TABLE contacts.contacts (
     id                 UUID PRIMARY KEY,
     owner_user_id      UUID NOT NULL REFERENCES identity.users(id) ON DELETE CASCADE,
     first_name         VARCHAR(100) NOT NULL,
     last_name          VARCHAR(100),
     primary_email      VARCHAR(255),
+    birthdate          DATE,
     dynamic_attributes JSONB,
     created_at         TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Relación Many-to-Many entre contactos y sus tags
 CREATE TABLE contacts.contact_tags (
     contact_id UUID NOT NULL REFERENCES contacts.contacts(id) ON DELETE CASCADE,
     tag_id     UUID NOT NULL REFERENCES contacts.user_tags(id) ON DELETE CASCADE,
@@ -50,7 +51,7 @@ CREATE TABLE contacts.contact_tags (
 );
 
 -- ==========================================
--- SCHEMA: identity (Ampliación para Onboarding)
+-- SCHEMA: identity (Gestión de Estado de Usuario)
 -- ==========================================
 
 CREATE TABLE identity.user_kyc (
@@ -58,7 +59,6 @@ CREATE TABLE identity.user_kyc (
     self_contact_id      UUID UNIQUE REFERENCES contacts.contacts(id) ON DELETE SET NULL,
     status               VARCHAR(20) DEFAULT 'PENDING',
     onboarding_completed BOOLEAN DEFAULT FALSE,
-    birthdate            DATE,
     updated_at           TIMESTAMPTZ DEFAULT NOW()
 );
 

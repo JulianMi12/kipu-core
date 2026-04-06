@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.kipu.core.identity.application.port.out.TokenProviderPort;
 import com.kipu.core.identity.application.user.profile.GetUserProfileUseCase;
 import com.kipu.core.identity.application.user.profile.UserProfileResult;
+import com.kipu.core.identity.domain.model.KycStatus;
 import com.kipu.core.identity.infrastructure.rest.dto.UserProfileResponse;
 import com.kipu.core.identity.infrastructure.rest.mapper.UserRestMapper;
 import com.kipu.core.identity.infrastructure.security.SecurityConfig;
@@ -44,7 +45,8 @@ class UserControllerTest {
     UUID userId = UUID.randomUUID();
     String email = "dev@kipu.com";
 
-    UserProfileResult result = new UserProfileResult(userId, email, true, now);
+    UserProfileResult result =
+        new UserProfileResult(userId, email, true, now, KycStatus.PENDING, false);
     UserProfileResponse response =
         UserProfileResponse.builder().id(userId).email(email).active(true).createdAt(now).build();
 

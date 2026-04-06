@@ -19,9 +19,7 @@ class UserKycJpaEntityTest {
     LocalDate birthdate = LocalDate.of(1990, 1, 1);
     OffsetDateTime now = OffsetDateTime.now();
 
-    UserKyc domain = UserKyc.reconstitute(
-        userId, selfContactId, KycStatus.COMPLETED, true, birthdate, now
-    );
+    UserKyc domain = UserKyc.reconstitute(userId, selfContactId, KycStatus.COMPLETED, true, now);
 
     // Act
     UserKycJpaEntity entity = UserKycJpaEntity.fromDomain(domain);
@@ -31,7 +29,6 @@ class UserKycJpaEntityTest {
     assertThat(entity.getSelfContactId()).isEqualTo(selfContactId);
     assertThat(entity.getStatus()).isEqualTo(KycStatus.COMPLETED);
     assertThat(entity.isOnboardingCompleted()).isTrue();
-    assertThat(entity.getBirthdate()).isEqualTo(birthdate);
     assertThat(entity.getUpdatedAt()).isEqualTo(now);
   }
 
@@ -43,9 +40,8 @@ class UserKycJpaEntityTest {
     LocalDate birthdate = LocalDate.of(1985, 5, 20);
     OffsetDateTime now = OffsetDateTime.now();
 
-    UserKycJpaEntity entity = new UserKycJpaEntity(
-        userId, selfContactId, KycStatus.IN_PROGRESS, false, birthdate, now
-    );
+    UserKycJpaEntity entity =
+        new UserKycJpaEntity(userId, selfContactId, KycStatus.IN_PROGRESS, false, now);
 
     // Act
     UserKyc domain = entity.toDomain();
@@ -55,7 +51,6 @@ class UserKycJpaEntityTest {
     assertThat(domain.getSelfContactId()).isEqualTo(selfContactId);
     assertThat(domain.getStatus()).isEqualTo(KycStatus.IN_PROGRESS);
     assertThat(domain.isOnboardingCompleted()).isFalse();
-    assertThat(domain.getBirthdate()).isEqualTo(birthdate);
     assertThat(domain.getUpdatedAt()).isEqualTo(now);
   }
 }

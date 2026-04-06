@@ -8,7 +8,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -38,8 +37,6 @@ public class UserKycJpaEntity {
   @Column(name = "onboarding_completed", nullable = false)
   private boolean onboardingCompleted;
 
-  @Column private LocalDate birthdate;
-
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
 
@@ -49,12 +46,10 @@ public class UserKycJpaEntity {
         userKyc.getSelfContactId(),
         userKyc.getStatus(),
         userKyc.isOnboardingCompleted(),
-        userKyc.getBirthdate(),
         userKyc.getUpdatedAt());
   }
 
   public UserKyc toDomain() {
-    return UserKyc.reconstitute(
-        userId, selfContactId, status, onboardingCompleted, birthdate, updatedAt);
+    return UserKyc.reconstitute(userId, selfContactId, status, onboardingCompleted, updatedAt);
   }
 }

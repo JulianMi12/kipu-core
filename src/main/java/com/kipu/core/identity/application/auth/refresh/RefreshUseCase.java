@@ -35,7 +35,7 @@ public class RefreshUseCase {
 
     Optional<User> userOpt = userRepository.findById(userId);
     if (userOpt.isEmpty()) {
-      log.warn("[RefreshUseCase] Token refresh failed - user not found for id: {}", userId);
+      log.error("[RefreshUseCase] Token refresh failed - user not found for id: {}", userId);
       throw new InvalidTokenException("User associated with token not found.");
     }
     User user = userOpt.get();

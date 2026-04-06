@@ -1,0 +1,12 @@
+${AnsiColor.CYAN}
+.${AnsiColor.BRIGHT_CYAN}__________________________________________________________________
+|   ${AnsiColor.CYAN} __  __    _____     _____    _    _   ${AnsiColor.BRIGHT_CYAN}                       |
+|   ${AnsiColor.CYAN}|  |/ /   |_   _|   |  __ \  | |  | |  ${AnsiColor.BRIGHT_CYAN}      CORE SERVICE     |
+|   ${AnsiColor.CYAN}| ' /       | |     | |__) | | |  | |  ${AnsiColor.BRIGHT_CYAN}      (TM)             |
+|   ${AnsiColor.CYAN}|  <        | |     |  ___/  | |  | |  ${AnsiColor.BRIGHT_CYAN}                       |
+|   ${AnsiColor.CYAN}|  . \     _| |_    | |      | |__| |  ${AnsiColor.BRIGHT_CYAN}                       |
+|   ${AnsiColor.CYAN}|__|\_\   |_____|   |_|       \____/   ${AnsiColor.BRIGHT_CYAN}                       |
+|__________________________________________________________________|
+| ${AnsiColor.CYAN}Powered by:${AnsiColor.BRIGHT_WHITE} Spring Boot ${spring-boot.version} | ${AnsiColor.CYAN}Version:${AnsiColor.BRIGHT_WHITE} ${application.version} | ${AnsiColor.CYAN}Java:${AnsiColor.BRIGHT_WHITE} ${java.version}  |
+'------------------------------------------------------------------'
+${AnsiColor.DEFAULT}

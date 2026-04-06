@@ -47,13 +47,8 @@ class RegisterUserUseCaseTest {
     String encodedPassword = "encoded-hash";
     RegisterUserCommand command = new RegisterUserCommand(email, rawPassword);
 
-    User mockUser = User.reconstitute(
-        UUID.randomUUID(),
-        email,
-        encodedPassword,
-        true,
-        OffsetDateTime.now()
-    );
+    User mockUser =
+        User.reconstitute(UUID.randomUUID(), email, encodedPassword, true, OffsetDateTime.now());
     AuthTokens tokens = new AuthTokens("access", "refresh", OffsetDateTime.now().plusDays(1));
 
     when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
@@ -75,10 +70,12 @@ class RegisterUserUseCaseTest {
       verify(refreshTokenRepository)
           .save(mockUser.getId(), tokens.refreshToken(), tokens.refreshTokenExpiresAt());
 
-      verify(userKycRepository).save(argThat(kyc ->
-          kyc.getUserId().equals(mockUser.getId()) &&
-              kyc.getStatus().name().equals("PENDING")
-      ));
+      verify(userKycRepository)
+          .save(
+              argThat(
+                  kyc ->
+                      kyc.getUserId().equals(mockUser.getId())
+                          && kyc.getStatus().name().equals("PENDING")));
     }
   }
 
