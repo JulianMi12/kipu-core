@@ -81,7 +81,8 @@ class DynamicAttributesConverterTest {
   }
 
   @Test
-  @DisplayName("convertToDatabaseColumn: Should return empty object and log error when serialization fails")
+  @DisplayName(
+      "convertToDatabaseColumn: Should return empty object and log error when serialization fails")
   void convertToDatabaseColumn_ShouldHandleJsonProcessingException() {
     // Arrange
     DynamicAttributesConverter converter = new DynamicAttributesConverter();
@@ -89,10 +90,13 @@ class DynamicAttributesConverterTest {
     // 💡 Creamos un objeto que Jackson NO PUEDE serializar por diseño
     // Una clase anónima que Jackson no sabrá cómo manejar lanzará una InvalidDefinitionException
     // la cual hereda de JsonProcessingException.
-    Object unserializableObject = new Object() {
-      @Override
-      public String toString() { return "I will fail"; }
-    };
+    Object unserializableObject =
+        new Object() {
+          @Override
+          public String toString() {
+            return "I will fail";
+          }
+        };
 
     Map<String, Object> faultMap = new HashMap<>();
     faultMap.put("fail", unserializableObject);
