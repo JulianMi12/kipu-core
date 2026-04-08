@@ -6,9 +6,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.kipu.core.contacts.application.create.CreateContactCommand;
-import com.kipu.core.contacts.application.create.CreateContactResult;
-import com.kipu.core.contacts.application.create.CreateContactUseCase;
+import com.kipu.core.contacts.application.contact.create.CreateContactCommand;
+import com.kipu.core.contacts.application.contact.create.CreateContactResult;
+import com.kipu.core.contacts.application.contact.create.CreateContactUseCase;
 import com.kipu.core.contacts.domain.model.Contact;
 import com.kipu.core.contacts.domain.repository.ContactRepository;
 import com.kipu.core.identity.domain.port.out.ContactProfileInfo;

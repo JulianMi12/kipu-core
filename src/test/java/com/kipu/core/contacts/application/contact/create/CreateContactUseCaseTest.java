@@ -1,4 +1,4 @@
-package com.kipu.core.contacts.application.create;
+package com.kipu.core.contacts.application.contact.create;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

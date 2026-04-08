@@ -1,7 +1,8 @@
-package com.kipu.core.identity.infrastructure.rest.controller;
+package com.kipu.core.identity.infrastructure.rest.controller.impl;
 
 import com.kipu.core.identity.application.user.profile.GetUserProfileUseCase;
 import com.kipu.core.identity.application.user.profile.UserProfileResult;
+import com.kipu.core.identity.infrastructure.rest.controller.UserApi;
 import com.kipu.core.identity.infrastructure.rest.dto.UserProfileResponse;
 import com.kipu.core.identity.infrastructure.rest.mapper.UserRestMapper;
 import java.util.UUID;

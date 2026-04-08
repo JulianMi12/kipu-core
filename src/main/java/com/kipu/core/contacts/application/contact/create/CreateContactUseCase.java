@@ -1,4 +1,4 @@
-package com.kipu.core.contacts.application.create;
+package com.kipu.core.contacts.application.contact.create;
 
 import com.kipu.core.contacts.domain.model.Contact;
 import com.kipu.core.contacts.domain.repository.ContactRepository;

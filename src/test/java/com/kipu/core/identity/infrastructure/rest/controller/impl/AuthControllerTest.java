@@ -1,4 +1,4 @@
-package com.kipu.core.identity.infrastructure.rest.controller;
+package com.kipu.core.identity.infrastructure.rest.controller.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;

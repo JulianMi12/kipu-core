@@ -1,4 +1,4 @@
-package com.kipu.core.identity.infrastructure.rest.controller;
+package com.kipu.core.identity.infrastructure.rest.controller.impl;
 
 import com.kipu.core.identity.application.auth.login.LoginResult;
 import com.kipu.core.identity.application.auth.login.LoginUserUseCase;
@@ -7,6 +7,7 @@ import com.kipu.core.identity.application.auth.refresh.RefreshUseCase;
 import com.kipu.core.identity.application.registration.RegisterUserUseCase;
 import com.kipu.core.identity.application.registration.RegistrationResult;
 import com.kipu.core.identity.domain.model.AuthTokens;
+import com.kipu.core.identity.infrastructure.rest.controller.AuthApi;
 import com.kipu.core.identity.infrastructure.rest.dto.LoginRequest;
 import com.kipu.core.identity.infrastructure.rest.dto.LoginResponse;
 import com.kipu.core.identity.infrastructure.rest.dto.RefreshRequest;

@@ -1,4 +1,4 @@
-package com.kipu.core.contacts.application.create;
+package com.kipu.core.contacts.application.contact.create;
 
 import java.time.LocalDate;
 import java.util.Map;

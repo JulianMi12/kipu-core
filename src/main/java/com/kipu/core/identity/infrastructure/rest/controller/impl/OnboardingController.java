@@ -1,8 +1,9 @@
-package com.kipu.core.identity.infrastructure.rest.controller;
+package com.kipu.core.identity.infrastructure.rest.controller.impl;
 
 import com.kipu.core.identity.application.user.onboarding.CompleteOnboardingCommand;
 import com.kipu.core.identity.application.user.onboarding.CompleteOnboardingUseCase;
 import com.kipu.core.identity.application.user.profile.UserProfileResult;
+import com.kipu.core.identity.infrastructure.rest.controller.OnboardingApi;
 import com.kipu.core.identity.infrastructure.rest.dto.OnboardingRequest;
 import com.kipu.core.identity.infrastructure.rest.dto.UserProfileResponse;
 import com.kipu.core.identity.infrastructure.rest.mapper.UserRestMapper;
