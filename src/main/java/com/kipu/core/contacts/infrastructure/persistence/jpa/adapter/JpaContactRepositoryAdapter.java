@@ -24,4 +24,9 @@ public class JpaContactRepositoryAdapter implements ContactRepository {
   public Optional<Contact> findById(UUID id) {
     return jpaContactRepository.findById(id).map(ContactJpaEntity::toDomain);
   }
+
+  @Override
+  public Optional<Contact> findByIdWithTags(UUID id) {
+    return jpaContactRepository.findByIdWithTags(id).map(ContactJpaEntity::toDomain);
+  }
 }

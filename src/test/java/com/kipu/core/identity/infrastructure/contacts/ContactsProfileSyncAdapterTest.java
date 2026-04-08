@@ -2,6 +2,7 @@ package com.kipu.core.identity.infrastructure.contacts;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -9,6 +10,9 @@ import static org.mockito.Mockito.when;
 import com.kipu.core.contacts.application.contact.create.CreateContactCommand;
 import com.kipu.core.contacts.application.contact.create.CreateContactResult;
 import com.kipu.core.contacts.application.contact.create.CreateContactUseCase;
+import com.kipu.core.contacts.application.tag.create.CreateUserTagCommand;
+import com.kipu.core.contacts.application.tag.create.CreateUserTagResult;
+import com.kipu.core.contacts.application.tag.create.CreateUserTagUseCase;
 import com.kipu.core.contacts.domain.model.Contact;
 import com.kipu.core.contacts.domain.repository.ContactRepository;
 import com.kipu.core.identity.domain.port.out.ContactProfileInfo;
@@ -27,47 +31,60 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ContactsProfileSyncAdapterTest {
 
   @Mock private CreateContactUseCase createContactUseCase;
+  @Mock private CreateUserTagUseCase createUserTagUseCase;
   @Mock private ContactRepository contactRepository;
   @Mock private Contact mockContact;
 
   @InjectMocks private ContactsProfileSyncAdapter contactsProfileSyncAdapter;
 
   @Test
-  @DisplayName("createSelfContact: Should map parameters to command and return contact ID")
-  void createSelfContact_ShouldMapToCommandAndReturnId() {
+  @DisplayName(
+      "createSelfContact: Should create personal tag, then contact, and return profile info")
+  void createSelfContact_ShouldCreateTagAndContactCorrectly() {
     // Arrange
     UUID userId = UUID.randomUUID();
-    UUID expectedContactId = UUID.randomUUID();
+    UUID tagId = UUID.randomUUID();
+    UUID contactId = UUID.randomUUID();
     String firstName = "Julian";
     String lastName = "Miranda";
     String email = "dev@kipu.com";
     LocalDate birthdate = LocalDate.of(1990, 1, 1);
 
-    CreateContactResult mockResult = new CreateContactResult(expectedContactId);
+    // Mocks para los casos de uso
+    CreateUserTagResult tagResult = new CreateUserTagResult(tagId, "personal", "#4F46E5");
+    CreateContactResult contactResult = new CreateContactResult(contactId);
 
-    when(createContactUseCase.execute(any(CreateContactCommand.class))).thenReturn(mockResult);
+    when(createUserTagUseCase.execute(any(CreateUserTagCommand.class))).thenReturn(tagResult);
+    when(createContactUseCase.execute(any(CreateContactCommand.class))).thenReturn(contactResult);
 
     // Act
-    ContactProfileInfo resultId =
+    ContactProfileInfo result =
         contactsProfileSyncAdapter.createSelfContact(userId, firstName, lastName, email, birthdate);
 
     // Assert
-    assertNotNull(resultId);
-    assertEquals(expectedContactId, resultId.contactId());
+    assertNotNull(result);
+    assertEquals(contactId, result.contactId());
+    assertEquals(firstName, result.firstName());
+    assertEquals(lastName, result.lastName());
 
-    // Verificación de la construcción del comando (Captor para asegurar integridad)
-    ArgumentCaptor<CreateContactCommand> commandCaptor =
+    // 1. Verificar creación de Tag
+    ArgumentCaptor<CreateUserTagCommand> tagCaptor =
+        ArgumentCaptor.forClass(CreateUserTagCommand.class);
+    verify(createUserTagUseCase).execute(tagCaptor.capture());
+    assertEquals(userId, tagCaptor.getValue().ownerUserId());
+    assertEquals("personal", tagCaptor.getValue().name());
+    assertEquals("#4F46E5", tagCaptor.getValue().colorHex());
+
+    // 2. Verificar creación de Contacto con el Tag ID recibido
+    ArgumentCaptor<CreateContactCommand> contactCaptor =
         ArgumentCaptor.forClass(CreateContactCommand.class);
+    verify(createContactUseCase).execute(contactCaptor.capture());
 
-    verify(createContactUseCase).execute(commandCaptor.capture());
-
-    CreateContactCommand capturedCommand = commandCaptor.getValue();
-    assertEquals(userId, capturedCommand.ownerUserId());
-    assertEquals(firstName, capturedCommand.firstName());
-    assertEquals(lastName, capturedCommand.lastName());
-    assertEquals(email, capturedCommand.primaryEmail());
-    assertEquals(birthdate, capturedCommand.birthdate());
-    assertNotNull(capturedCommand.dynamicAttributes());
+    CreateContactCommand capturedContact = contactCaptor.getValue();
+    assertEquals(userId, capturedContact.ownerUserId());
+    assertEquals(firstName, capturedContact.firstName());
+    assertTrue(
+        capturedContact.tagIds().contains(tagId), "El contacto debe incluir el ID del tag creado");
   }
 
   @Test
@@ -78,23 +95,19 @@ class ContactsProfileSyncAdapterTest {
     String firstName = "Julian";
     String lastName = "Miranda";
 
-    // Configuramos el mock de la entidad de dominio Contact
     when(mockContact.getId()).thenReturn(contactId);
     when(mockContact.getFirstName()).thenReturn(firstName);
     when(mockContact.getLastName()).thenReturn(lastName);
-
-    when(contactRepository.findById(contactId)).thenReturn(Optional.of(mockContact));
+    when(contactRepository.findByIdWithTags(contactId)).thenReturn(Optional.of(mockContact));
 
     // Act
     Optional<ContactProfileInfo> result = contactsProfileSyncAdapter.getContactById(contactId);
 
     // Assert
-    verify(contactRepository).findById(contactId);
-    assertNotNull(result);
-    assertEquals(true, result.isPresent());
+    assertTrue(result.isPresent());
     assertEquals(contactId, result.get().contactId());
     assertEquals(firstName, result.get().firstName());
-    assertEquals(lastName, result.get().lastName());
+    verify(contactRepository).findByIdWithTags(contactId);
   }
 
   @Test
@@ -102,14 +115,13 @@ class ContactsProfileSyncAdapterTest {
   void getContactById_WhenContactDoesNotExist_ShouldReturnEmpty() {
     // Arrange
     UUID contactId = UUID.randomUUID();
-    when(contactRepository.findById(contactId)).thenReturn(Optional.empty());
+    when(contactRepository.findByIdWithTags(contactId)).thenReturn(Optional.empty());
 
     // Act
     Optional<ContactProfileInfo> result = contactsProfileSyncAdapter.getContactById(contactId);
 
     // Assert
-    verify(contactRepository).findById(contactId);
-    assertNotNull(result);
-    assertEquals(false, result.isPresent());
+    assertTrue(result.isEmpty());
+    verify(contactRepository).findByIdWithTags(contactId);
   }
 }

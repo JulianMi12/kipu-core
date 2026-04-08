@@ -18,6 +18,7 @@ import com.kipu.core.contacts.domain.repository.ContactEventRepository;
 import com.kipu.core.contacts.domain.repository.ContactRepository;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,10 +44,10 @@ class CompleteContactEventUseCaseTest {
 
     ContactEvent event =
         ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE);
+            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE, Set.of());
 
     Contact contact =
-        Contact.reconstitute(contactId, userId, "Juan", "Perez", null, null, null, null);
+        Contact.reconstitute(contactId, userId, "Juan", "Perez", null, null, null, Set.of(), null);
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.of(contact));
@@ -91,7 +92,7 @@ class CompleteContactEventUseCaseTest {
 
     ContactEvent event =
         ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE);
+            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE, Set.of());
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.empty());
@@ -115,10 +116,11 @@ class CompleteContactEventUseCaseTest {
 
     ContactEvent event =
         ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE);
+            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE, Set.of());
 
     Contact contact =
-        Contact.reconstitute(contactId, differentOwnerId, "Juan", "Perez", null, null, null, null);
+        Contact.reconstitute(
+            contactId, differentOwnerId, "Juan", "Perez", null, null, null, Set.of(), null);
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.of(contact));

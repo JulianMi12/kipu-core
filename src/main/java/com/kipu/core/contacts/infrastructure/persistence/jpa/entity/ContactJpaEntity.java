@@ -1,13 +1,19 @@
 package com.kipu.core.contacts.infrastructure.persistence.jpa.entity;
 
 import com.kipu.core.contacts.domain.model.Contact;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -50,6 +56,14 @@ public class ContactJpaEntity {
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
 
+  @ElementCollection(fetch = FetchType.LAZY)
+  @CollectionTable(
+      name = "contact_tags",
+      schema = "contacts",
+      joinColumns = @JoinColumn(name = "contact_id"))
+  @Column(name = "tag_id")
+  private Set<UUID> tagIds = new HashSet<>();
+
   public static ContactJpaEntity fromDomain(Contact contact) {
     return new ContactJpaEntity(
         contact.getId(),
@@ -59,7 +73,8 @@ public class ContactJpaEntity {
         contact.getPrimaryEmail(),
         contact.getBirthdate(),
         contact.getDynamicAttributes(),
-        contact.getCreatedAt());
+        contact.getCreatedAt(),
+        contact.getTagIds() != null ? new HashSet<>(contact.getTagIds()) : new HashSet<>());
   }
 
   public Contact toDomain() {
@@ -71,6 +86,7 @@ public class ContactJpaEntity {
         primaryEmail,
         birthdate,
         dynamicAttributes,
+        tagIds != null ? tagIds : new HashSet<>(),
         createdAt);
   }
 }

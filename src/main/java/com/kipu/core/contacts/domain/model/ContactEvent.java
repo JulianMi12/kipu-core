@@ -4,6 +4,8 @@ import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
 import com.kipu.core.contacts.domain.model.enums.EventStatusEnum;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -22,6 +24,7 @@ public final class ContactEvent {
   private EventRecurrenceTypeEnum recurrenceType;
   private EventStatusEnum status;
   private LocalDate lastCompletedDate;
+  private Set<UUID> tagIds;
   private final OffsetDateTime createdAt;
   private OffsetDateTime updatedAt;
 
@@ -31,7 +34,8 @@ public final class ContactEvent {
       String description,
       LocalDate baseDate,
       int alertLeadTimeDays,
-      EventRecurrenceTypeEnum recurrenceType) {
+      EventRecurrenceTypeEnum recurrenceType,
+      Set<UUID> tagIds) {
     OffsetDateTime now = OffsetDateTime.now();
     return new ContactEvent(
         UUID.randomUUID(),
@@ -43,6 +47,7 @@ public final class ContactEvent {
         recurrenceType,
         EventStatusEnum.PENDING,
         null,
+        tagIds != null ? new HashSet<>(tagIds) : new HashSet<>(),
         now,
         now);
   }
@@ -57,6 +62,7 @@ public final class ContactEvent {
       EventRecurrenceTypeEnum recurrenceType,
       EventStatusEnum status,
       LocalDate lastCompletedDate,
+      Set<UUID> tagIds,
       OffsetDateTime createdAt,
       OffsetDateTime updatedAt) {
     return new ContactEvent(
@@ -69,6 +75,7 @@ public final class ContactEvent {
         recurrenceType,
         status,
         lastCompletedDate,
+        tagIds != null ? new HashSet<>(tagIds) : new HashSet<>(),
         createdAt,
         updatedAt);
   }
@@ -78,12 +85,14 @@ public final class ContactEvent {
       String description,
       LocalDate baseDate,
       int alertLeadTimeDays,
-      EventRecurrenceTypeEnum recurrenceType) {
+      EventRecurrenceTypeEnum recurrenceType,
+      Set<UUID> tagIds) {
     this.title = title;
     this.description = description;
     this.baseDate = baseDate;
     this.alertLeadTimeDays = alertLeadTimeDays;
     this.recurrenceType = recurrenceType;
+    this.tagIds = new HashSet<>(tagIds);
     this.updatedAt = OffsetDateTime.now();
   }
 

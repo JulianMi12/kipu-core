@@ -5,6 +5,7 @@ import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
 import com.kipu.core.contacts.domain.model.enums.EventStatusEnum;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 public record CreateContactEventResult(
@@ -16,6 +17,7 @@ public record CreateContactEventResult(
     EventRecurrenceTypeEnum recurrenceType,
     EventStatusEnum status,
     LocalDate lastCompletedDate,
+    Set<UUID> tagIds,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt) {
 
@@ -29,6 +31,7 @@ public record CreateContactEventResult(
         event.getRecurrenceType(),
         event.getStatus(),
         event.getLastCompletedDate(),
+        event.getTagIds(),
         event.getCreatedAt(),
         event.getUpdatedAt());
   }

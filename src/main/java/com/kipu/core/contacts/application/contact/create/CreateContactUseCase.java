@@ -26,7 +26,8 @@ public class CreateContactUseCase {
             command.lastName(),
             command.primaryEmail(),
             command.birthdate(),
-            command.dynamicAttributes());
+            command.dynamicAttributes(),
+            command.tagIds());
 
     contactRepository.save(contact);
 

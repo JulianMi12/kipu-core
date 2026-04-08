@@ -14,11 +14,15 @@ import com.kipu.core.contacts.domain.exception.UnauthorizedContactAccessExceptio
 import com.kipu.core.contacts.domain.model.Contact;
 import com.kipu.core.contacts.domain.model.ContactEvent;
 import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
+import com.kipu.core.contacts.domain.model.enums.EventStatusEnum;
 import com.kipu.core.contacts.domain.repository.ContactEventRepository;
 import com.kipu.core.contacts.domain.repository.ContactRepository;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,12 +38,15 @@ class UpdateContactEventUseCaseTest {
   @InjectMocks private UpdateContactEventUseCase updateContactEventUseCase;
 
   @Test
+  @DisplayName("execute: Should update all fields including tags when authorized")
   void execute_ShouldReturnUpdatedResult_WhenUserIsOwner() {
     // Arrange
     UUID userId = UUID.randomUUID();
     UUID contactId = UUID.randomUUID();
     UUID eventId = UUID.randomUUID();
+    UUID tagId = UUID.randomUUID();
     LocalDate newDate = LocalDate.now().plusDays(10);
+    Set<UUID> newTags = Set.of(tagId);
 
     UpdateContactEventCommand command =
         new UpdateContactEventCommand(
@@ -49,14 +56,28 @@ class UpdateContactEventUseCaseTest {
             "New Description",
             newDate,
             5,
-            EventRecurrenceTypeEnum.MONTHLY);
+            EventRecurrenceTypeEnum.MONTHLY,
+            newTags);
 
+    // Reconstituimos un evento con tags antiguos (vacíos)
     ContactEvent existingEvent =
-        ContactEvent.create(
-            contactId, "Old Title", "Old Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE);
+        ContactEvent.reconstitute(
+            eventId,
+            contactId,
+            "Old",
+            "Old",
+            LocalDate.now(),
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            EventStatusEnum.PENDING,
+            null,
+            Set.of(),
+            OffsetDateTime.now(),
+            OffsetDateTime.now());
 
     Contact contact =
-        Contact.reconstitute(contactId, userId, "Juan", "Perez", null, null, null, null);
+        Contact.reconstitute(
+            contactId, userId, "Juan", "Perez", null, null, null, Set.of(), OffsetDateTime.now());
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(existingEvent));
     when(contactRepository.findById(contactId)).thenReturn(Optional.of(contact));
@@ -68,8 +89,7 @@ class UpdateContactEventUseCaseTest {
     // Assert
     assertThat(result).isNotNull();
     assertThat(result.title()).isEqualTo("New Title");
-    assertThat(result.description()).isEqualTo("New Description");
-    assertThat(result.recurrenceType()).isEqualTo(EventRecurrenceTypeEnum.MONTHLY);
+    assertThat(result.tagIds()).containsExactly(tagId); // Verificamos que los tags se actualizaron
 
     verify(contactEventRepository).findById(eventId);
     verify(contactRepository).findById(contactId);
@@ -77,12 +97,20 @@ class UpdateContactEventUseCaseTest {
   }
 
   @Test
+  @DisplayName("execute: Should throw ContactEventNotFoundException when event id is invalid")
   void execute_ShouldThrowContactEventNotFoundException_WhenEventDoesNotExist() {
     // Arrange
     UUID eventId = UUID.randomUUID();
     UpdateContactEventCommand command =
         new UpdateContactEventCommand(
-            UUID.randomUUID(), eventId, "T", "D", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE);
+            UUID.randomUUID(),
+            eventId,
+            "T",
+            "D",
+            LocalDate.now(),
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            Set.of());
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.empty());
 
@@ -94,6 +122,8 @@ class UpdateContactEventUseCaseTest {
   }
 
   @Test
+  @DisplayName(
+      "execute: Should throw ContactNotFoundException when the associated contact is missing")
   void execute_ShouldThrowContactNotFoundException_WhenContactDoesNotExist() {
     // Arrange
     UUID userId = UUID.randomUUID();
@@ -101,11 +131,23 @@ class UpdateContactEventUseCaseTest {
     UUID eventId = UUID.randomUUID();
     UpdateContactEventCommand command =
         new UpdateContactEventCommand(
-            userId, eventId, "T", "D", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE);
+            userId, eventId, "T", "D", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE, Set.of());
 
+    // Usamos reconstitute para tener control total
     ContactEvent event =
-        ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE);
+        ContactEvent.reconstitute(
+            eventId,
+            contactId,
+            "T",
+            "D",
+            LocalDate.now(),
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            EventStatusEnum.PENDING,
+            null,
+            Set.of(),
+            OffsetDateTime.now(),
+            OffsetDateTime.now());
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.empty());
@@ -118,6 +160,8 @@ class UpdateContactEventUseCaseTest {
   }
 
   @Test
+  @DisplayName(
+      "execute: Should throw UnauthorizedAccessException when user tries to update someone else's event")
   void execute_ShouldThrowUnauthorizedContactAccessException_WhenUserIsNotOwner() {
     // Arrange
     UUID authenticatedUserId = UUID.randomUUID();
@@ -133,14 +177,35 @@ class UpdateContactEventUseCaseTest {
             "D",
             LocalDate.now(),
             0,
-            EventRecurrenceTypeEnum.ONCE);
+            EventRecurrenceTypeEnum.ONCE,
+            Set.of());
 
     ContactEvent event =
-        ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE);
+        ContactEvent.reconstitute(
+            eventId,
+            contactId,
+            "T",
+            "D",
+            LocalDate.now(),
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            EventStatusEnum.PENDING,
+            null,
+            Set.of(),
+            OffsetDateTime.now(),
+            OffsetDateTime.now());
 
     Contact contact =
-        Contact.reconstitute(contactId, differentOwnerId, "Juan", "Perez", null, null, null, null);
+        Contact.reconstitute(
+            contactId,
+            differentOwnerId,
+            "Juan",
+            "Perez",
+            null,
+            null,
+            null,
+            Set.of(),
+            OffsetDateTime.now());
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.of(contact));

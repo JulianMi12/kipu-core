@@ -2,6 +2,7 @@ package com.kipu.core.contacts.application.event.create;
 
 import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.UUID;
 
 public record CreateContactEventCommand(
@@ -11,4 +12,5 @@ public record CreateContactEventCommand(
     String description,
     LocalDate baseDate,
     int alertLeadTimeDays,
-    EventRecurrenceTypeEnum recurrenceType) {}
+    EventRecurrenceTypeEnum recurrenceType,
+    Set<UUID> tagIds) {}

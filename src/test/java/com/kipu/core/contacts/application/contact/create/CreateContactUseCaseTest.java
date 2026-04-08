@@ -8,6 +8,7 @@ import com.kipu.core.contacts.domain.model.Contact;
 import com.kipu.core.contacts.domain.repository.ContactRepository;
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,8 @@ class CreateContactUseCaseTest {
     Map<String, Object> attributes = Map.of("origin", "onboarding");
 
     CreateContactCommand command =
-        new CreateContactCommand(ownerUserId, firstName, lastName, email, birthdate, attributes);
+        new CreateContactCommand(
+            ownerUserId, firstName, lastName, email, birthdate, attributes, Set.of());
 
     // Act
     CreateContactResult result = createContactUseCase.execute(command);

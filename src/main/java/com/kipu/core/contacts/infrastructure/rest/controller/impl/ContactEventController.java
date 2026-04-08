@@ -13,6 +13,7 @@ import com.kipu.core.contacts.application.event.update.UpdateContactEventUseCase
 import com.kipu.core.contacts.infrastructure.rest.controller.ContactEventApi;
 import com.kipu.core.contacts.infrastructure.rest.dto.CreateContactEventRequest;
 import com.kipu.core.contacts.infrastructure.rest.dto.UpdateContactEventRequest;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,7 +60,8 @@ public class ContactEventController implements ContactEventApi {
                 request.description(),
                 request.baseDate(),
                 request.alertLeadTimeDays(),
-                request.recurrenceType()));
+                request.recurrenceType(),
+                request.tagIds() != null ? request.tagIds() : Set.of()));
     return ResponseEntity.status(HttpStatus.CREATED).body(result);
   }
 
@@ -84,7 +86,8 @@ public class ContactEventController implements ContactEventApi {
                 request.description(),
                 request.baseDate(),
                 request.alertLeadTimeDays(),
-                request.recurrenceType()));
+                request.recurrenceType(),
+                request.tagIds() != null ? request.tagIds() : Set.of()));
     return ResponseEntity.ok(result);
   }
 

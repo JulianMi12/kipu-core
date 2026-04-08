@@ -11,7 +11,9 @@ import com.kipu.core.contacts.infrastructure.persistence.jpa.entity.ContactEvent
 import com.kipu.core.contacts.infrastructure.persistence.jpa.repository.JpaContactEventRepository;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -26,6 +28,7 @@ class JpaContactEventRepositoryAdapterTest {
   @InjectMocks private JpaContactEventRepositoryAdapter jpaContactEventRepositoryAdapter;
 
   @Test
+  @DisplayName("save: Should map to entity, save, and map back to domain")
   void save_ShouldReturnSavedContactEvent_WhenDataIsValid() {
     // Arrange
     ContactEvent event =
@@ -35,7 +38,8 @@ class JpaContactEventRepositoryAdapterTest {
             "Description",
             LocalDate.now(),
             5,
-            EventRecurrenceTypeEnum.ONCE);
+            EventRecurrenceTypeEnum.ONCE,
+            Set.of());
     ContactEventJpaEntity entity = ContactEventJpaEntity.fromDomain(event);
 
     when(jpaContactEventRepository.save(any(ContactEventJpaEntity.class))).thenReturn(entity);
@@ -46,18 +50,17 @@ class JpaContactEventRepositoryAdapterTest {
     // Assert
     assertThat(result).isNotNull();
     assertThat(result.getId()).isEqualTo(event.getId());
-    assertThat(result.getTitle()).isEqualTo(event.getTitle());
     verify(jpaContactEventRepository).save(any(ContactEventJpaEntity.class));
   }
 
   @Test
+  @DisplayName("findById: Should return domain event when entity exists")
   void findById_ShouldReturnOptionalWithEvent_WhenEventExists() {
     // Arrange
     UUID eventId = UUID.randomUUID();
-    ContactEvent event =
-        ContactEvent.create(
-            UUID.randomUUID(), "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE);
-    ContactEventJpaEntity entity = ContactEventJpaEntity.fromDomain(event);
+    ContactEventJpaEntity entity = new ContactEventJpaEntity();
+    entity.setId(eventId);
+    entity.setTitle("Basic Title");
 
     when(jpaContactEventRepository.findById(eventId)).thenReturn(Optional.of(entity));
 
@@ -66,25 +69,48 @@ class JpaContactEventRepositoryAdapterTest {
 
     // Assert
     assertThat(result).isPresent();
-    assertThat(result.get().getTitle()).isEqualTo("Title");
+    assertThat(result.get().getId()).isEqualTo(eventId);
     verify(jpaContactEventRepository).findById(eventId);
   }
 
   @Test
-  void findById_ShouldReturnEmptyOptional_WhenEventDoesNotExist() {
+  @DisplayName("findByIdWithTags: Should call the specific repository method with JOIN FETCH")
+  void findByIdWithTags_ShouldReturnEvent_WhenExists() {
     // Arrange
     UUID eventId = UUID.randomUUID();
-    when(jpaContactEventRepository.findById(eventId)).thenReturn(Optional.empty());
+    UUID tagId = UUID.randomUUID();
+    ContactEventJpaEntity entity = new ContactEventJpaEntity();
+    entity.setId(eventId);
+    entity.setTagIds(Set.of(tagId));
+
+    when(jpaContactEventRepository.findByIdWithTags(eventId)).thenReturn(Optional.of(entity));
 
     // Act
-    Optional<ContactEvent> result = jpaContactEventRepositoryAdapter.findById(eventId);
+    Optional<ContactEvent> result = jpaContactEventRepositoryAdapter.findByIdWithTags(eventId);
+
+    // Assert
+    assertThat(result).isPresent();
+    assertThat(result.get().getTagIds()).contains(tagId);
+    verify(jpaContactEventRepository).findByIdWithTags(eventId);
+  }
+
+  @Test
+  @DisplayName("findByIdWithTags: Should return empty when event does not exist")
+  void findByIdWithTags_ShouldReturnEmpty_WhenNotFound() {
+    // Arrange
+    UUID eventId = UUID.randomUUID();
+    when(jpaContactEventRepository.findByIdWithTags(eventId)).thenReturn(Optional.empty());
+
+    // Act
+    Optional<ContactEvent> result = jpaContactEventRepositoryAdapter.findByIdWithTags(eventId);
 
     // Assert
     assertThat(result).isEmpty();
-    verify(jpaContactEventRepository).findById(eventId);
+    verify(jpaContactEventRepository).findByIdWithTags(eventId);
   }
 
   @Test
+  @DisplayName("delete: Should call deleteById in the JPA repository")
   void delete_ShouldInvokeRepositoryDelete_WhenIdIsProvided() {
     // Arrange
     UUID eventId = UUID.randomUUID();

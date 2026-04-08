@@ -7,6 +7,7 @@ import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
 import com.kipu.core.contacts.domain.model.enums.EventStatusEnum;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +41,7 @@ class CreateContactEventResultTest {
             recurrenceType,
             status,
             lastCompletedDate,
+            Set.of(),
             createdAt,
             updatedAt);
 

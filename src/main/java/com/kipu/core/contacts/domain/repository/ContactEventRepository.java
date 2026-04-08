@@ -10,5 +10,7 @@ public interface ContactEventRepository {
 
   Optional<ContactEvent> findById(UUID id);
 
+  Optional<ContactEvent> findByIdWithTags(UUID id);
+
   void delete(UUID id);
 }

@@ -26,6 +26,11 @@ public class JpaContactEventRepositoryAdapter implements ContactEventRepository 
   }
 
   @Override
+  public Optional<ContactEvent> findByIdWithTags(UUID id) {
+    return jpaContactEventRepository.findByIdWithTags(id).map(ContactEventJpaEntity::toDomain);
+  }
+
+  @Override
   public void delete(UUID id) {
     jpaContactEventRepository.deleteById(id);
   }

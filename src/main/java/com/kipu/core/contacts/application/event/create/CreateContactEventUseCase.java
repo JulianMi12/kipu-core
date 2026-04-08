@@ -44,7 +44,8 @@ public class CreateContactEventUseCase {
             command.description(),
             command.baseDate(),
             command.alertLeadTimeDays(),
-            command.recurrenceType());
+            command.recurrenceType(),
+            command.tagIds());
 
     ContactEvent savedEvent = contactEventRepository.save(event);
 

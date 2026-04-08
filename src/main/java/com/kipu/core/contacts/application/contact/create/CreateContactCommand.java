@@ -2,6 +2,7 @@ package com.kipu.core.contacts.application.contact.create;
 
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public record CreateContactCommand(
@@ -10,4 +11,5 @@ public record CreateContactCommand(
     String lastName,
     String primaryEmail,
     LocalDate birthdate,
-    Map<String, Object> dynamicAttributes) {}
+    Map<String, Object> dynamicAttributes,
+    Set<UUID> tagIds) {}

@@ -9,4 +9,6 @@ public interface ContactRepository {
   void save(Contact contact);
 
   Optional<Contact> findById(UUID id);
+
+  Optional<Contact> findByIdWithTags(UUID id);
 }
