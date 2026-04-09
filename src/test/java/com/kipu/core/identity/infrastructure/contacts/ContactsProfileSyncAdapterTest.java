@@ -8,8 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.kipu.core.contacts.application.contact.create.CreateContactCommand;
-import com.kipu.core.contacts.application.contact.create.CreateContactResult;
 import com.kipu.core.contacts.application.contact.create.CreateContactUseCase;
+import com.kipu.core.contacts.application.contact.get.ContactSummaryResult;
 import com.kipu.core.contacts.application.tag.create.CreateUserTagCommand;
 import com.kipu.core.contacts.application.tag.create.CreateUserTagResult;
 import com.kipu.core.contacts.application.tag.create.CreateUserTagUseCase;
@@ -18,6 +18,7 @@ import com.kipu.core.contacts.domain.repository.ContactRepository;
 import com.kipu.core.identity.domain.port.out.ContactProfileInfo;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,8 @@ class ContactsProfileSyncAdapterTest {
 
     // Mocks para los casos de uso
     CreateUserTagResult tagResult = new CreateUserTagResult(tagId, "personal", "#4F46E5");
-    CreateContactResult contactResult = new CreateContactResult(contactId);
+    ContactSummaryResult contactResult =
+        new ContactSummaryResult(contactId, firstName, lastName, email, Set.of());
 
     when(createUserTagUseCase.execute(any(CreateUserTagCommand.class))).thenReturn(tagResult);
     when(createContactUseCase.execute(any(CreateContactCommand.class))).thenReturn(contactResult);

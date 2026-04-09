@@ -24,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class JpaContactRepositoryAdapterTest {
@@ -144,5 +145,59 @@ class JpaContactRepositoryAdapterTest {
     entity.setCreatedAt(OffsetDateTime.now());
     entity.setTagIds(new HashSet<>());
     return entity;
+  }
+
+  @Test
+  @DisplayName("delete: Should call jpaRepository deleteById")
+  void delete_ShouldCallJpaRepository() {
+    // Arrange
+    UUID contactId = UUID.randomUUID();
+
+    // Act
+    jpaContactRepositoryAdapter.delete(contactId);
+
+    // Assert
+    verify(jpaContactRepository).deleteById(contactId);
+  }
+
+  @Test
+  @DisplayName("findAllByOwnerUserId: Should call generic finder when excludedContactId is null")
+  void findAllByOwnerUserId_WhenExcludedIdIsNull_ShouldCallGenericFinder() {
+    // Arrange
+    UUID ownerId = UUID.randomUUID();
+    Pageable pageable = mock(Pageable.class);
+
+    // Usamos Page.empty() para satisfacer el mapeo .map(ContactJpaEntity::toDomain)
+    when(jpaContactRepository.findByOwnerUserIdOrderByCreatedAtDesc(ownerId, pageable))
+        .thenReturn(org.springframework.data.domain.Page.empty());
+
+    // Act
+    jpaContactRepositoryAdapter.findAllByOwnerUserId(ownerId, null, pageable);
+
+    // Assert
+    verify(jpaContactRepository).findByOwnerUserIdOrderByCreatedAtDesc(ownerId, pageable);
+    verify(jpaContactRepository, org.mockito.Mockito.never())
+        .findAllByOwnerUserIdAndIdNot(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName(
+      "findAllByOwnerUserId: Should call excluding finder when excludedContactId is provided")
+  void findAllByOwnerUserId_WhenExcludedIdIsProvided_ShouldCallExcludingFinder() {
+    // Arrange
+    UUID ownerId = UUID.randomUUID();
+    UUID excludedId = UUID.randomUUID();
+    Pageable pageable = mock(Pageable.class);
+
+    when(jpaContactRepository.findAllByOwnerUserIdAndIdNot(ownerId, excludedId, pageable))
+        .thenReturn(org.springframework.data.domain.Page.empty());
+
+    // Act
+    jpaContactRepositoryAdapter.findAllByOwnerUserId(ownerId, excludedId, pageable);
+
+    // Assert
+    verify(jpaContactRepository).findAllByOwnerUserIdAndIdNot(ownerId, excludedId, pageable);
+    verify(jpaContactRepository, org.mockito.Mockito.never())
+        .findByOwnerUserIdOrderByCreatedAtDesc(any(), any());
   }
 }

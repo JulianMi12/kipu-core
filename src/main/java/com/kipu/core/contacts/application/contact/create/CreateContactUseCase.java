@@ -1,5 +1,7 @@
 package com.kipu.core.contacts.application.contact.create;
 
+import com.kipu.core.contacts.application.contact.get.ContactSummaryResult;
+import com.kipu.core.contacts.domain.exception.ContactFirstNameRequiredException;
 import com.kipu.core.contacts.domain.model.Contact;
 import com.kipu.core.contacts.domain.repository.ContactRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,9 +17,13 @@ public class CreateContactUseCase {
 
   private final ContactRepository contactRepository;
 
-  public CreateContactResult execute(CreateContactCommand command) {
+  public ContactSummaryResult execute(CreateContactCommand command) {
     log.info(
         "[CreateContactUseCase] Creating contact for owner user id: {}", command.ownerUserId());
+
+    if (command.firstName() == null || command.firstName().isEmpty()) {
+      throw new ContactFirstNameRequiredException();
+    }
 
     Contact contact =
         Contact.createSelfContact(
@@ -35,6 +41,6 @@ public class CreateContactUseCase {
         "[CreateContactUseCase] Contact created with id: {} for owner user id: {}",
         contact.getId(),
         command.ownerUserId());
-    return new CreateContactResult(contact.getId());
+    return ContactSummaryResult.from(contact);
   }
 }

@@ -1,9 +1,13 @@
 package com.kipu.core.contacts.application.contact.create;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.kipu.core.contacts.application.contact.get.ContactSummaryResult;
+import com.kipu.core.contacts.domain.exception.ContactFirstNameRequiredException;
 import com.kipu.core.contacts.domain.model.Contact;
 import com.kipu.core.contacts.domain.repository.ContactRepository;
 import java.time.LocalDate;
@@ -26,7 +30,7 @@ class CreateContactUseCaseTest {
   @InjectMocks private CreateContactUseCase createContactUseCase;
 
   @Test
-  @DisplayName("execute: Should create and save a new contact correctly")
+  @DisplayName("execute: Should create and save a new contact correctly when data is valid")
   void execute_ShouldCreateAndSaveContact() {
     // Arrange
     UUID ownerUserId = UUID.randomUUID();
@@ -35,34 +39,56 @@ class CreateContactUseCaseTest {
     String email = "dev@kipu.com";
     LocalDate birthdate = LocalDate.of(1990, 1, 1);
     Map<String, Object> attributes = Map.of("origin", "onboarding");
+    Set<UUID> tagIds = Set.of(UUID.randomUUID());
 
     CreateContactCommand command =
         new CreateContactCommand(
-            ownerUserId, firstName, lastName, email, birthdate, attributes, Set.of());
+            ownerUserId, firstName, lastName, email, birthdate, attributes, tagIds);
 
     // Act
-    CreateContactResult result = createContactUseCase.execute(command);
+    ContactSummaryResult result = createContactUseCase.execute(command);
 
     // Assert
-    assertNotNull(result);
-    assertNotNull(result.contactId());
+    assertThat(result).isNotNull();
 
-    // Verificación de la persistencia y captura del objeto de dominio
     ArgumentCaptor<Contact> contactCaptor = ArgumentCaptor.forClass(Contact.class);
     verify(contactRepository).save(contactCaptor.capture());
 
     Contact savedContact = contactCaptor.getValue();
+    assertThat(savedContact.getId()).isEqualTo(result.id());
+    assertThat(savedContact.getFirstName()).isEqualTo(firstName);
+    assertThat(savedContact.getOwnerUserId()).isEqualTo(ownerUserId);
+    assertThat(savedContact.getTagIds()).containsExactlyInAnyOrderElementsOf(tagIds);
+    assertThat(savedContact.getCreatedAt()).isNotNull();
+  }
 
-    // Validamos que el ID del resultado coincida con el generado en el dominio
-    assertEquals(savedContact.getId(), result.contactId());
+  @Test
+  @DisplayName("execute: Should throw exception when firstName is null")
+  void execute_ShouldThrowException_WhenFirstNameIsNull() {
+    // Arrange
+    CreateContactCommand command =
+        new CreateContactCommand(
+            UUID.randomUUID(), null, "Miranda", "j@t.com", null, Map.of(), Set.of());
 
-    // Validamos la integridad de los datos mapeados desde el comando
-    assertEquals(ownerUserId, savedContact.getOwnerUserId());
-    assertEquals(firstName, savedContact.getFirstName());
-    assertEquals(lastName, savedContact.getLastName());
-    assertEquals(email, savedContact.getPrimaryEmail());
-    assertEquals(birthdate, savedContact.getBirthdate());
-    assertEquals(attributes, savedContact.getDynamicAttributes());
-    assertNotNull(savedContact.getCreatedAt());
+    // Act & Assert
+    assertThatThrownBy(() -> createContactUseCase.execute(command))
+        .isInstanceOf(ContactFirstNameRequiredException.class);
+
+    verify(contactRepository, never()).save(any(Contact.class));
+  }
+
+  @Test
+  @DisplayName("execute: Should throw exception when firstName is empty")
+  void execute_ShouldThrowException_WhenFirstNameIsEmpty() {
+    // Arrange
+    CreateContactCommand command =
+        new CreateContactCommand(
+            UUID.randomUUID(), "", "Miranda", "j@t.com", null, Map.of(), Set.of());
+
+    // Act & Assert
+    assertThatThrownBy(() -> createContactUseCase.execute(command))
+        .isInstanceOf(ContactFirstNameRequiredException.class);
+
+    verify(contactRepository, never()).save(any(Contact.class));
   }
 }

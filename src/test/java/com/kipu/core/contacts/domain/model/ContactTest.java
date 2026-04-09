@@ -1,5 +1,6 @@
 package com.kipu.core.contacts.domain.model;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -97,5 +98,66 @@ class ContactTest {
     assertEquals(newAttributes, contact.getDynamicAttributes());
     assertEquals(1, contact.getTagIds().size());
     assertTrue(contact.getTagIds().contains(newTagId));
+  }
+
+  @Test
+  @DisplayName("reconstitute: Should handle null tags by setting field to null (Branch Coverage)")
+  void reconstitute_ShouldHandleNullTags() {
+    // Act
+    Contact contact =
+        Contact.reconstitute(
+            UUID.randomUUID(),
+            ownerUserId,
+            firstName,
+            lastName,
+            email,
+            birthdate,
+            Map.of(),
+            null,
+            OffsetDateTime.now());
+
+    // Assert
+    assertThat(contact.getTagIds()).isNull();
+  }
+
+  @Test
+  @DisplayName("createSelfContact: Should create independent HashSet for tagIds")
+  void createSelfContact_ShouldCreateIndependentHashSet() {
+    // Arrange
+    Set<UUID> originalTags = new java.util.HashSet<>();
+    UUID tagId = UUID.randomUUID();
+    originalTags.add(tagId);
+
+    // Act
+    Contact contact =
+        Contact.createSelfContact(
+            ownerUserId, firstName, lastName, email, birthdate, Map.of(), originalTags);
+
+    // Modificamos la colección original
+    originalTags.clear();
+
+    // Assert
+    // El contacto no debe verse afectado porque debe tener su propia instancia de HashSet
+    assertThat(contact.getTagIds()).containsExactly(tagId);
+  }
+
+  @Test
+  @DisplayName("update: Should create independent HashSet for new tagIds")
+  void update_ShouldCreateIndependentHashSet() {
+    // Arrange
+    Contact contact =
+        Contact.createSelfContact(
+            ownerUserId, firstName, lastName, email, birthdate, Map.of(), Set.of());
+
+    Set<UUID> newTags = new java.util.HashSet<>();
+    UUID newTagId = UUID.randomUUID();
+    newTags.add(newTagId);
+
+    // Act
+    contact.update(firstName, lastName, email, birthdate, Map.of(), newTags);
+    newTags.clear(); // Modificamos la fuente
+
+    // Assert
+    assertThat(contact.getTagIds()).containsExactly(newTagId);
   }
 }

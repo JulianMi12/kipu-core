@@ -1,8 +1,8 @@
 package com.kipu.core.identity.infrastructure.contacts;
 
 import com.kipu.core.contacts.application.contact.create.CreateContactCommand;
-import com.kipu.core.contacts.application.contact.create.CreateContactResult;
 import com.kipu.core.contacts.application.contact.create.CreateContactUseCase;
+import com.kipu.core.contacts.application.contact.get.ContactSummaryResult;
 import com.kipu.core.contacts.application.tag.create.CreateUserTagCommand;
 import com.kipu.core.contacts.application.tag.create.CreateUserTagResult;
 import com.kipu.core.contacts.application.tag.create.CreateUserTagUseCase;
@@ -43,7 +43,7 @@ public class ContactsProfileSyncAdapter implements ProfileSyncPort {
         personalTag.tagId(),
         userId);
 
-    CreateContactResult result =
+    ContactSummaryResult result =
         createContactUseCase.execute(
             new CreateContactCommand(
                 userId,
@@ -56,9 +56,9 @@ public class ContactsProfileSyncAdapter implements ProfileSyncPort {
 
     log.info(
         "[ContactsProfileSyncAdapter] Self-contact created with id: {} for user id: {}",
-        result.contactId(),
+        result.id(),
         userId);
-    return new ContactProfileInfo(result.contactId(), firstName, lastName);
+    return new ContactProfileInfo(result.id(), result.firstName(), result.lastName());
   }
 
   @Override

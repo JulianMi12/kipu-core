@@ -7,7 +7,10 @@ import com.kipu.core.contacts.infrastructure.persistence.jpa.repository.JpaConta
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 @RequiredArgsConstructor
@@ -28,5 +31,24 @@ public class JpaContactRepositoryAdapter implements ContactRepository {
   @Override
   public Optional<Contact> findByIdWithTags(UUID id) {
     return jpaContactRepository.findByIdWithTags(id).map(ContactJpaEntity::toDomain);
+  }
+
+  @Override
+  public void delete(UUID id) {
+    jpaContactRepository.deleteById(id);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Page<Contact> findAllByOwnerUserId(
+      UUID ownerUserId, UUID excludedContactId, Pageable pageable) {
+    if (excludedContactId == null) {
+      return jpaContactRepository
+          .findByOwnerUserIdOrderByCreatedAtDesc(ownerUserId, pageable)
+          .map(ContactJpaEntity::toDomain);
+    }
+    return jpaContactRepository
+        .findAllByOwnerUserIdAndIdNot(ownerUserId, excludedContactId, pageable)
+        .map(ContactJpaEntity::toDomain);
   }
 }

@@ -62,7 +62,7 @@ public final class Contact {
         primaryEmail,
         birthdate,
         dynamicAttributes,
-        new HashSet<>(tagIds),
+        tagIds != null ? new HashSet<>(tagIds) : null,
         createdAt);
   }
 
