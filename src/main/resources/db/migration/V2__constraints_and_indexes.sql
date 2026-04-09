@@ -59,3 +59,34 @@ CREATE INDEX idx_contact_events_contact_id ON contacts.contact_events(contact_id
 CREATE INDEX idx_contact_events_start_date ON contacts.contact_events(start_date_time);
 CREATE INDEX idx_contact_events_status     ON contacts.contact_events(status);
 CREATE INDEX idx_event_tags_tag_id         ON contacts.event_tags(tag_id);
+
+-- ==========================================
+-- BÚSQUEDA GLOBAL (POSTGRESQL TRGM)
+-- ==========================================
+
+-- 1. Habilitamos la extensión.
+-- Es vital que el esquema 'contacts' ya exista antes de este punto.
+CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA contacts;
+
+-- 2. Índices GIN (Usando la calificación completa para evitar fallos de search_path)
+CREATE INDEX IF NOT EXISTS idx_contacts_search_trgm
+    ON contacts.contacts
+    USING gin ((first_name || ' ' || last_name) contacts.gin_trgm_ops);
+
+CREATE INDEX IF NOT EXISTS idx_contacts_email_trgm
+    ON contacts.contacts
+    USING gin (primary_email contacts.gin_trgm_ops);
+
+CREATE INDEX IF NOT EXISTS idx_events_title_trgm
+    ON contacts.contact_events
+    USING gin (title contacts.gin_trgm_ops);
+
+-- ==========================================
+-- CONFIGURACIÓN DE RELEVANCIA
+-- ==========================================
+-- Establecemos el umbral de similitud.
+-- Usamos EXECUTE para que no falle si el entorno tiene restricciones de transacción.
+DO $$
+BEGIN
+EXECUTE 'ALTER DATABASE ' || current_database() || ' SET pg_trgm.similarity_threshold = 0.2';
+END $$;
