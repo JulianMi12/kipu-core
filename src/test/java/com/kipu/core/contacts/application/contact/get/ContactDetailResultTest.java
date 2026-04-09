@@ -3,8 +3,10 @@ package com.kipu.core.contacts.application.contact.get;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.kipu.core.contacts.domain.model.Contact;
+import com.kipu.core.contacts.domain.model.UserTag;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -17,12 +19,11 @@ class ContactDetailResultTest {
   @DisplayName("from: Should calculate age correctly based on birthdate")
   void from_ShouldCalculateAge_WhenBirthdateIsNotNull() {
     // Arrange
-    // Calculamos una fecha de hace 20 años exactos
     LocalDate birthdate = LocalDate.now().minusYears(20);
     Contact contact = createTestContact(birthdate);
 
     // Act
-    ContactDetailResult result = ContactDetailResult.from(contact);
+    ContactDetailResult result = ContactDetailResult.from(contact, List.of());
 
     // Assert
     assertThat(result.age()).isEqualTo(20);
@@ -36,11 +37,35 @@ class ContactDetailResultTest {
     Contact contact = createTestContact(null);
 
     // Act
-    ContactDetailResult result = ContactDetailResult.from(contact);
+    ContactDetailResult result = ContactDetailResult.from(contact, List.of());
 
     // Assert
     assertThat(result.age()).isNull();
     assertThat(result.birthdate()).isNull();
+  }
+
+  @Test
+  @DisplayName("from: Should map tags correctly from domain UserTag to TagInfo")
+  void from_ShouldMapTagsCorrectly() {
+    // Arrange
+    Contact contact = createTestContact(LocalDate.of(1990, 1, 1));
+    UUID ownerId = contact.getOwnerUserId();
+
+    UserTag tag1 = UserTag.reconstitute(UUID.randomUUID(), ownerId, "Personal", "#4F46E5");
+    UserTag tag2 = UserTag.reconstitute(UUID.randomUUID(), ownerId, "Trabajo", "#FF5733");
+    List<UserTag> domainTags = List.of(tag1, tag2);
+
+    // Act
+    ContactDetailResult result = ContactDetailResult.from(contact, domainTags);
+
+    // Assert
+    assertThat(result.tags()).hasSize(2);
+    // Verificamos el primer tag (recordar que UserTag aplica toLowerCase al nombre)
+    assertThat(result.tags().get(0).name()).isEqualTo("personal");
+    assertThat(result.tags().get(0).colorHex()).isEqualTo("#4F46E5");
+    // Verificamos el segundo tag
+    assertThat(result.tags().get(1).name()).isEqualTo("trabajo");
+    assertThat(result.tags().get(1).colorHex()).isEqualTo("#FF5733");
   }
 
   @Test
@@ -66,7 +91,7 @@ class ContactDetailResultTest {
             now);
 
     // Act
-    ContactDetailResult result = ContactDetailResult.from(contact);
+    ContactDetailResult result = ContactDetailResult.from(contact, List.of());
 
     // Assert
     assertThat(result.id()).isEqualTo(id);
@@ -74,8 +99,7 @@ class ContactDetailResultTest {
     assertThat(result.lastName()).isEqualTo("Miranda");
     assertThat(result.primaryEmail()).isEqualTo("juli@test.com");
     assertThat(result.dynamicAttributes()).isEqualTo(attrs);
-    assertThat(result.tagIds()).containsAll(tags);
-    // Verificamos que la edad sea coherente (ej. en 2026 para alguien nacido en 1990)
+    // En 2026, alguien nacido en 1990 tiene 36 años
     assertThat(result.age()).isGreaterThanOrEqualTo(36);
   }
 

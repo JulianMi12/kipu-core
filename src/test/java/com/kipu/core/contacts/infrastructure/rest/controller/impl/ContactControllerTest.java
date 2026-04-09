@@ -18,6 +18,7 @@ import com.kipu.core.contacts.application.contact.update.UpdateContactUseCase;
 import com.kipu.core.contacts.infrastructure.rest.dto.ContactRequest;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -186,7 +187,7 @@ class ContactControllerTest {
     UUID userId = UUID.randomUUID();
     UUID contactId = UUID.randomUUID();
     ContactDetailResult expected =
-        new ContactDetailResult(contactId, "C", "G", "c@t.com", null, null, Map.of(), Set.of());
+        new ContactDetailResult(contactId, "C", "G", "c@t.com", null, null, Map.of(), List.of());
 
     when(getContactDetailUseCase.execute(userId, contactId)).thenReturn(expected);
 
