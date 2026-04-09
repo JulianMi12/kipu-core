@@ -49,4 +49,9 @@ public class JpaUserTagRepositoryAdapter implements UserTagRepository {
         .findByOwnerUserIdAndNameIgnoreCase(ownerUserId, name)
         .map(UserTagJpaEntity::toDomain);
   }
+
+  @Override
+  public List<UserTag> findAllById(Iterable<UUID> ids) {
+    return jpaUserTagRepository.findAllById(ids).stream().map(UserTagJpaEntity::toDomain).toList();
+  }
 }

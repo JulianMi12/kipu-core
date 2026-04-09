@@ -164,4 +164,43 @@ class JpaUserTagRepositoryAdapterTest {
     assertThat(result).isEmpty();
     verify(jpaUserTagRepository).findByOwnerUserIdAndNameIgnoreCase(ownerId, name);
   }
+
+  @Test
+  @DisplayName("findAllById: Should return list of domain tags when IDs exist")
+  void findAllById_ShouldReturnMappedList_WhenIdsExist() {
+    // Arrange
+    UUID id1 = UUID.randomUUID();
+    UUID id2 = UUID.randomUUID();
+    List<UUID> ids = List.of(id1, id2);
+
+    UserTagJpaEntity entity1 = new UserTagJpaEntity(id1, UUID.randomUUID(), "Personal", "#4F46E5");
+    UserTagJpaEntity entity2 =
+        new UserTagJpaEntity(id2, UUID.randomUUID(), "Cumpleaños", "#EC4899");
+
+    when(jpaUserTagRepository.findAllById(ids)).thenReturn(List.of(entity1, entity2));
+
+    // Act
+    List<UserTag> results = jpaUserTagRepositoryAdapter.findAllById(ids);
+
+    // Assert
+    assertThat(results).hasSize(2);
+    assertThat(results.get(0).getId()).isEqualTo(id1);
+    assertThat(results.get(1).getId()).isEqualTo(id2);
+    verify(jpaUserTagRepository).findAllById(ids);
+  }
+
+  @Test
+  @DisplayName("findAllById: Should return empty list when no IDs match")
+  void findAllById_ShouldReturnEmptyList_WhenNoMatch() {
+    // Arrange
+    List<UUID> ids = List.of(UUID.randomUUID());
+    when(jpaUserTagRepository.findAllById(ids)).thenReturn(List.of());
+
+    // Act
+    List<UserTag> results = jpaUserTagRepositoryAdapter.findAllById(ids);
+
+    // Assert
+    assertThat(results).isEmpty();
+    verify(jpaUserTagRepository).findAllById(ids);
+  }
 }

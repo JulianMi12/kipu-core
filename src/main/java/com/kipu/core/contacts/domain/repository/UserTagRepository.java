@@ -18,4 +18,6 @@ public interface UserTagRepository {
   boolean existsByNameAndOwnerUserId(String name, UUID ownerUserId);
 
   Optional<UserTag> findByOwnerUserIdAndNameIgnoreCase(UUID ownerUserId, String name);
+
+  List<UserTag> findAllById(Iterable<UUID> ids);
 }

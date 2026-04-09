@@ -2,6 +2,7 @@ package com.kipu.core.contacts.infrastructure.persistence.jpa.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,6 +12,7 @@ import com.kipu.core.contacts.domain.model.enums.EventStatusEnum;
 import com.kipu.core.contacts.infrastructure.persistence.jpa.entity.ContactEventJpaEntity;
 import com.kipu.core.contacts.infrastructure.persistence.jpa.repository.JpaContactEventRepository;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -187,5 +189,60 @@ class JpaContactEventRepositoryAdapterTest {
     // Assert
     assertThat(result).isEmpty();
     verify(jpaContactEventRepository).findByContactIdAndTagId(contactId, tagId);
+  }
+
+  @Test
+  @DisplayName("findUpcomingByOwnerUserId: Should return list of events ordered by date")
+  void findUpcomingByOwnerUserId_ShouldReturnList_WhenEventsExist() {
+    // Arrange
+    UUID ownerId = UUID.randomUUID();
+    OffsetDateTime from = OffsetDateTime.now();
+    int limit = 4;
+
+    // Creamos entidades de prueba
+    ContactEventJpaEntity entity1 = createMockEntity(UUID.randomUUID());
+    ContactEventJpaEntity entity2 = createMockEntity(UUID.randomUUID());
+    List<ContactEventJpaEntity> entities = List.of(entity1, entity2);
+
+    // Configuramos el mock para esperar los parámetros exactos, incluyendo el Pageable
+    // PageRequest.of(0, limit, Sort.by("startDateTime").ascending())
+    when(jpaContactEventRepository.findUpcomingByOwnerUserId(
+            eq(ownerId),
+            eq(EventStatusEnum.PENDING),
+            eq(from),
+            any(org.springframework.data.domain.Pageable.class)))
+        .thenReturn(entities);
+
+    // Act
+    List<ContactEvent> result =
+        jpaContactEventRepositoryAdapter.findUpcomingByOwnerUserId(ownerId, from, limit);
+
+    // Assert
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).getId()).isEqualTo(entity1.getId());
+    assertThat(result.get(1).getId()).isEqualTo(entity2.getId());
+
+    // Verificamos que se llamó al repositorio con el Pageable configurado (Sort ASC)
+    verify(jpaContactEventRepository)
+        .findUpcomingByOwnerUserId(eq(ownerId), eq(EventStatusEnum.PENDING), eq(from), any());
+  }
+
+  @Test
+  @DisplayName("findUpcomingByOwnerUserId: Should return empty list when no events are pending")
+  void findUpcomingByOwnerUserId_ShouldReturnEmptyList_WhenNoResults() {
+    // Arrange
+    UUID ownerId = UUID.randomUUID();
+    OffsetDateTime from = OffsetDateTime.now();
+
+    when(jpaContactEventRepository.findUpcomingByOwnerUserId(any(), any(), any(), any()))
+        .thenReturn(List.of());
+
+    // Act
+    List<ContactEvent> result =
+        jpaContactEventRepositoryAdapter.findUpcomingByOwnerUserId(ownerId, from, 4);
+
+    // Assert
+    assertThat(result).isEmpty();
+    verify(jpaContactEventRepository).findUpcomingByOwnerUserId(any(), any(), any(), any());
   }
 }
