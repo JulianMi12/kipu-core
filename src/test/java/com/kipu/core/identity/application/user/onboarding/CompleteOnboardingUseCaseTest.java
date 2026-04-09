@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -39,17 +40,21 @@ class CompleteOnboardingUseCaseTest {
 
   @InjectMocks private CompleteOnboardingUseCase completeOnboardingUseCase;
 
+  private static final String DEFAULT_TIMEZONE = "UTC";
+
   @Test
-  @DisplayName("execute: Should complete onboarding successfully when user and kyc exist")
+  @DisplayName("execute: Should complete onboarding successfully and sync profile with timezone")
   void execute_ShouldCompleteOnboarding_WhenUserAndKycExist() {
     // Arrange
     UUID userId = UUID.randomUUID();
     UUID selfContactId = UUID.randomUUID();
     String email = "dev@kipu.com";
     OffsetDateTime now = OffsetDateTime.now();
+    String timezone = "America/Bogota";
 
     CompleteOnboardingCommand command =
-        new CompleteOnboardingCommand(userId, "Julian", "Miranda", LocalDate.of(1990, 1, 1));
+        new CompleteOnboardingCommand(
+            userId, "Julian", "Miranda", LocalDate.of(1990, 1, 1), timezone);
 
     User user = mock(User.class);
     when(user.getId()).thenReturn(userId);
@@ -65,7 +70,7 @@ class CompleteOnboardingUseCaseTest {
 
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
     when(userKycRepository.findByUserId(userId)).thenReturn(Optional.of(userKyc));
-    when(profileSyncPort.createSelfContact(any(), any(), any(), any(), any()))
+    when(profileSyncPort.createSelfContact(any(), any(), any(), any(), any(), anyString()))
         .thenReturn(profileInfo);
 
     // Act
@@ -74,12 +79,12 @@ class CompleteOnboardingUseCaseTest {
     // Assert
     assertNotNull(result);
     assertEquals(userId, result.id());
+    assertEquals(KycStatus.PENDING, result.kycStatus());
 
     verify(userKyc).completeOnboarding(selfContactId);
     verify(userKycRepository).save(userKyc);
     verify(profileSyncPort)
-        .createSelfContact(
-            userId, command.firstName(), command.lastName(), email, command.birthdate());
+        .createSelfContact(eq(userId), eq("Julian"), eq("Miranda"), eq(email), any(), eq(timezone));
   }
 
   @Test
@@ -88,51 +93,62 @@ class CompleteOnboardingUseCaseTest {
     // Arrange
     UUID userId = UUID.randomUUID();
     CompleteOnboardingCommand command =
-        new CompleteOnboardingCommand(userId, "Julian", "Miranda", LocalDate.of(1990, 1, 1));
+        new CompleteOnboardingCommand(userId, "J", "M", LocalDate.now(), DEFAULT_TIMEZONE);
 
     when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
     // Act & Assert
     assertThrows(UserNotFoundException.class, () -> completeOnboardingUseCase.execute(command));
-    verify(userKycRepository, never()).save(any());
+    verify(userKycRepository, never()).findByUserId(any());
+    verify(profileSyncPort, never()).createSelfContact(any(), any(), any(), any(), any(), any());
   }
 
   @Test
-  @DisplayName("execute: Should throw UserNotFoundException when kyc record does not exist")
-  void execute_ShouldThrowUserNotFoundException_WhenKycDoesNotExist() {
+  @DisplayName(
+      "execute: Should throw UserNotFoundException when KYC record is missing (Branch Coverage)")
+  void execute_ShouldThrowUserNotFoundException_WhenKycIsMissing() {
     // Arrange
     UUID userId = UUID.randomUUID();
     CompleteOnboardingCommand command =
-        new CompleteOnboardingCommand(userId, "Julian", "Miranda", LocalDate.of(1990, 1, 1));
-    User user = mock(User.class);
+        new CompleteOnboardingCommand(
+            userId, "Julian", "Miranda", LocalDate.now(), DEFAULT_TIMEZONE);
 
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    when(userRepository.findById(userId)).thenReturn(Optional.of(mock(User.class)));
+    // El usuario existe, pero el registro de KYC falla (orElseThrow en getUserKyc)
     when(userKycRepository.findByUserId(userId)).thenReturn(Optional.empty());
 
     // Act & Assert
     assertThrows(UserNotFoundException.class, () -> completeOnboardingUseCase.execute(command));
+    verify(profileSyncPort, never()).createSelfContact(any(), any(), any(), any(), any(), any());
   }
 
   @Test
-  @DisplayName("execute: Should throw ProfileSyncException when profile sync fails")
+  @DisplayName("execute: Should throw ProfileSyncException and roll back when profile sync fails")
   void execute_ShouldThrowProfileSyncException_WhenSyncFails() {
     // Arrange
     UUID userId = UUID.randomUUID();
-    String email = "dev@kipu.com";
     CompleteOnboardingCommand command =
-        new CompleteOnboardingCommand(userId, "Julian", "Miranda", LocalDate.of(1990, 1, 1));
+        new CompleteOnboardingCommand(
+            userId, "Julian", "Miranda", LocalDate.now(), DEFAULT_TIMEZONE);
 
     User user = mock(User.class);
-    when(user.getEmail()).thenReturn(email);
+    when(user.getEmail()).thenReturn("dev@kipu.com");
     UserKyc userKyc = mock(UserKyc.class);
 
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
     when(userKycRepository.findByUserId(userId)).thenReturn(Optional.of(userKyc));
-    when(profileSyncPort.createSelfContact(any(), any(), any(), any(), any()))
-        .thenThrow(new RuntimeException("External Error"));
+
+    when(profileSyncPort.createSelfContact(any(), any(), any(), any(), any(), any()))
+        .thenThrow(new RuntimeException("External Service Down"));
 
     // Act & Assert
     assertThrows(ProfileSyncException.class, () -> completeOnboardingUseCase.execute(command));
+
+    // Si falla el sync, no se guarda el KYC
     verify(userKycRepository, never()).save(any());
+  }
+
+  private String anyString() {
+    return any(String.class);
   }
 }

@@ -41,8 +41,9 @@ public class GetUserProfileUseCase {
 
     String firstName = null;
     String lastName = null;
+    UUID selfContactId = null;
     if (onboardingCompleted) {
-      UUID selfContactId = kycOpt.get().getSelfContactId();
+      selfContactId = kycOpt.get().getSelfContactId();
       Optional<ContactProfileInfo> contactInfo = profileSyncPort.getContactById(selfContactId);
       firstName = contactInfo.map(ContactProfileInfo::firstName).orElse(null);
       lastName = contactInfo.map(ContactProfileInfo::lastName).orElse(null);
@@ -57,6 +58,7 @@ public class GetUserProfileUseCase {
         kycStatus,
         onboardingCompleted,
         firstName,
-        lastName);
+        lastName,
+        selfContactId);
   }
 }

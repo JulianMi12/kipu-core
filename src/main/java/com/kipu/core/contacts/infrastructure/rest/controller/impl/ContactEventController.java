@@ -58,9 +58,11 @@ public class ContactEventController implements ContactEventApi {
                 contactId,
                 request.title(),
                 request.description(),
-                request.baseDate(),
+                request.startDateTime(),
                 request.alertLeadTimeDays(),
                 request.recurrenceType(),
+                request.recurrenceInterval(),
+                request.timezone(),
                 request.tagIds() != null ? request.tagIds() : Set.of()));
     return ResponseEntity.status(HttpStatus.CREATED).body(result);
   }
@@ -84,9 +86,11 @@ public class ContactEventController implements ContactEventApi {
                 eventId,
                 request.title(),
                 request.description(),
-                request.baseDate(),
+                request.startDateTime(),
                 request.alertLeadTimeDays(),
                 request.recurrenceType(),
+                request.recurrenceInterval(),
+                request.timezone(),
                 request.tagIds() != null ? request.tagIds() : Set.of()));
     return ResponseEntity.ok(result);
   }

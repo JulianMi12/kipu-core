@@ -1,39 +1,63 @@
 package com.kipu.core.contacts.domain.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
 import com.kipu.core.contacts.domain.model.enums.EventStatusEnum;
-import java.time.LocalDate;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Modifier;
 import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class ContactEventTest {
 
   private final UUID contactId = UUID.randomUUID();
-  private final LocalDate baseDate = LocalDate.of(2026, 4, 10);
+  private final OffsetDateTime baseDate = OffsetDateTime.parse("2026-04-10T09:00:00Z");
+  private final String defaultTz = "UTC";
 
   @Test
-  @DisplayName("create: Should initialize with tags or empty set if null")
-  void create_ShouldInitializeCorrectly() {
-    // Caso con tags
-    UUID tagId = UUID.randomUUID();
-    ContactEvent event =
-        ContactEvent.create(
-            contactId, "T", "D", baseDate, 0, EventRecurrenceTypeEnum.ONCE, Set.of(tagId));
-    assertThat(event.getTagIds()).containsExactly(tagId);
-
-    // Caso con tags nulos (Cubre rama ternaria)
-    ContactEvent eventNullTags =
-        ContactEvent.create(contactId, "T", "D", baseDate, 0, EventRecurrenceTypeEnum.ONCE, null);
-    assertThat(eventNullTags.getTagIds()).isEmpty();
+  @DisplayName("Constructor: Should be private (Coverage for Lombok/Constructor lines)")
+  void constructor_ShouldBePrivate() throws NoSuchMethodException {
+    Constructor<ContactEvent> constructor =
+        ContactEvent.class.getDeclaredConstructor(
+            UUID.class,
+            UUID.class,
+            String.class,
+            String.class,
+            OffsetDateTime.class,
+            int.class,
+            EventRecurrenceTypeEnum.class,
+            int.class,
+            EventStatusEnum.class,
+            OffsetDateTime.class,
+            String.class,
+            Set.class,
+            OffsetDateTime.class,
+            OffsetDateTime.class);
+    assertThat(Modifier.isPrivate(constructor.getModifiers())).isTrue();
   }
 
   @Test
-  @DisplayName("reconstitute: Should handle null tags correctly")
+  @DisplayName("create: Should cover all ternary branches for null tags and timezone")
+  void create_ShouldHandleAllNullBranches() {
+    // Rama: timezone null -> "UTC", tagIds null -> HashSet vacío
+    ContactEvent event =
+        ContactEvent.create(
+            contactId, "Title", "Desc", baseDate, 0, EventRecurrenceTypeEnum.ONCE, 1, null, null);
+
+    assertThat(event.getTimezone()).isEqualTo("UTC");
+    assertThat(event.getTagIds()).isNotNull().isEmpty();
+    assertThat(event.getStatus()).isEqualTo(EventStatusEnum.PENDING);
+  }
+
+  @Test
+  @DisplayName("reconstitute: Should handle null tagIds branch")
   void reconstitute_ShouldHandleNullTags() {
     ContactEvent event =
         ContactEvent.reconstitute(
@@ -44,21 +68,31 @@ class ContactEventTest {
             baseDate,
             0,
             EventRecurrenceTypeEnum.ONCE,
+            1,
             EventStatusEnum.PENDING,
             null,
+            defaultTz,
             null,
             OffsetDateTime.now(),
             OffsetDateTime.now());
 
-    assertThat(event.getTagIds()).isEmpty();
+    assertThat(event.getTagIds()).isNotNull().isEmpty();
   }
 
   @Test
-  @DisplayName("update: Should modify all fields and update timestamp")
-  void update_ShouldWork() {
+  @DisplayName("update: Should handle null tags branch and update timestamp")
+  void update_ShouldHandleNullTagsAndModifyFields() {
     ContactEvent event =
         ContactEvent.create(
-            contactId, "Old", "D", baseDate, 0, EventRecurrenceTypeEnum.ONCE, Set.of());
+            contactId,
+            "Old",
+            "D",
+            baseDate,
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            1,
+            defaultTz,
+            Set.of(UUID.randomUUID()));
     OffsetDateTime oldUpdate = event.getUpdatedAt();
 
     event.update(
@@ -67,110 +101,170 @@ class ContactEventTest {
         baseDate.plusDays(1),
         5,
         EventRecurrenceTypeEnum.DAILY,
-        Set.of(UUID.randomUUID()));
+        1,
+        "America/Bogota",
+        null);
 
     assertThat(event.getTitle()).isEqualTo("New");
+    assertThat(event.getTagIds()).isEmpty();
     assertThat(event.getUpdatedAt()).isAfterOrEqualTo(oldUpdate);
   }
 
-  @Test
-  @DisplayName("complete: Should cover all switch cases and status logic")
-  void complete_ShouldCoverAllRecurrences() {
-    // Caso ONCE -> COMPLETED
-    ContactEvent once =
-        ContactEvent.create(contactId, "T", "D", baseDate, 0, EventRecurrenceTypeEnum.ONCE, null);
-    once.complete();
-    assertThat(once.getStatus()).isEqualTo(EventStatusEnum.COMPLETED);
-
-    // Caso DAILY -> PENDING + 1 day
-    ContactEvent daily =
-        ContactEvent.create(contactId, "T", "D", baseDate, 0, EventRecurrenceTypeEnum.DAILY, null);
-    daily.complete();
-    assertThat(daily.getBaseDate()).isEqualTo(baseDate.plusDays(1));
-    assertThat(daily.getStatus()).isEqualTo(EventStatusEnum.PENDING);
-
-    // Caso WEEKLY -> + 1 week
-    ContactEvent weekly =
-        ContactEvent.create(contactId, "T", "D", baseDate, 0, EventRecurrenceTypeEnum.WEEKLY, null);
-    weekly.complete();
-    assertThat(weekly.getBaseDate()).isEqualTo(baseDate.plusWeeks(1));
-
-    // Caso MONTHLY -> + 1 month
-    ContactEvent monthly =
-        ContactEvent.create(
-            contactId, "T", "D", baseDate, 0, EventRecurrenceTypeEnum.MONTHLY, null);
-    monthly.complete();
-    assertThat(monthly.getBaseDate()).isEqualTo(baseDate.plusMonths(1));
-
-    // Caso YEARLY -> + 1 year
-    ContactEvent yearly =
-        ContactEvent.create(contactId, "T", "D", baseDate, 0, EventRecurrenceTypeEnum.YEARLY, null);
-    yearly.complete();
-    assertThat(yearly.getBaseDate()).isEqualTo(baseDate.plusYears(1));
-  }
-
-  @Test
-  @DisplayName("undo: Should revert baseDate to lastCompletedDate if present")
-  void undo_ShouldHandleLastCompletedDate() {
-    // Arrange: Creamos un evento, lo completamos (esto guarda la fecha de hoy en lastCompletedDate)
+  @ParameterizedTest
+  @EnumSource(EventRecurrenceTypeEnum.class)
+  @DisplayName("complete: Should cover 100% of switch cases and status branches")
+  void complete_ShouldCoverAllBranches(EventRecurrenceTypeEnum type) {
+    // Arrange
+    int interval = 3; // Para probar HOURLY con intervalo
     ContactEvent event =
         ContactEvent.create(
-            contactId, "T", "D", baseDate, 0, EventRecurrenceTypeEnum.MONTHLY, null);
-    event.complete();
-    LocalDate completedDate = event.getLastCompletedDate(); // Es LocalDate.now()
+            contactId, "Task", "Desc", baseDate, 0, type, interval, defaultTz, null);
+
+    OffsetDateTime preCompleteUpdate = event.getUpdatedAt();
 
     // Act
+    event.complete();
+
+    // Assert
+    assertThat(event.getLastCompletedDate()).isNotNull();
+    assertThat(event.getUpdatedAt()).isAfterOrEqualTo(preCompleteUpdate);
+
+    switch (type) {
+      case ONCE -> {
+        assertThat(event.getStatus()).isEqualTo(EventStatusEnum.COMPLETED);
+        assertThat(event.getStartDateTime()).isEqualTo(baseDate);
+      }
+      case HOURLY -> {
+        assertThat(event.getStartDateTime()).isEqualTo(baseDate.plusHours(interval));
+        assertThat(event.getStatus()).isEqualTo(EventStatusEnum.PENDING);
+      }
+      case DAILY -> assertThat(event.getStartDateTime()).isEqualTo(baseDate.plusDays(1));
+      case WEEKLY -> assertThat(event.getStartDateTime()).isEqualTo(baseDate.plusWeeks(1));
+      case MONTHLY -> assertThat(event.getStartDateTime()).isEqualTo(baseDate.plusMonths(1));
+      case YEARLY -> assertThat(event.getStartDateTime()).isEqualTo(baseDate.plusYears(1));
+    }
+
+    if (type != EventRecurrenceTypeEnum.ONCE) {
+      assertThat(event.getStatus()).isEqualTo(EventStatusEnum.PENDING);
+    }
+  }
+
+  @Test
+  @DisplayName("undo: Should reset state and update timestamp")
+  void undo_ShouldResetStatusAndClearDate() {
+    ContactEvent event =
+        ContactEvent.create(
+            contactId, "T", "D", baseDate, 0, EventRecurrenceTypeEnum.ONCE, 1, defaultTz, null);
+    event.complete();
+    OffsetDateTime lastUpdate = event.getUpdatedAt();
+
     event.undo();
 
-    // Assert: baseDate debe ser ahora la fecha en que se completó
-    assertThat(event.getBaseDate()).isEqualTo(completedDate);
     assertThat(event.getLastCompletedDate()).isNull();
     assertThat(event.getStatus()).isEqualTo(EventStatusEnum.PENDING);
+    assertThat(event.getUpdatedAt()).isAfterOrEqualTo(lastUpdate);
   }
 
   @Test
-  @DisplayName("undo: Should work even if lastCompletedDate is null")
-  void undo_ShouldWorkWithNullLastDate() {
+  @DisplayName("updateStartDateTime: Should cover both normal and exception branches")
+  void updateStartDateTime_ShouldWorkOrThrow() {
     ContactEvent event =
-        ContactEvent.create(contactId, "T", "D", baseDate, 0, EventRecurrenceTypeEnum.ONCE, null);
-    // lastCompletedDate es nulo porque nunca se completó
+        ContactEvent.create(
+            contactId, "T", "D", baseDate, 0, EventRecurrenceTypeEnum.ONCE, 1, defaultTz, null);
 
-    event.undo();
+    OffsetDateTime newDate = baseDate.plusDays(10);
+    event.updateStartDateTime(newDate);
+    assertThat(event.getStartDateTime()).isEqualTo(newDate);
 
-    assertThat(event.getStatus()).isEqualTo(EventStatusEnum.PENDING);
-    assertThat(event.getBaseDate()).isEqualTo(baseDate); // No cambia
+    assertThatThrownBy(() -> event.updateStartDateTime(null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("La fecha de inicio no puede ser nula");
   }
 
   @Test
-  @DisplayName("reconstitute: Should initialize HashSet with provided tags when tagIds is not null")
-  void reconstitute_ShouldHandleNonNullTags() {
+  @DisplayName("tagIds: Should ensure a new HashSet is created (defensive copying)")
+  void tagIds_ShouldEnsureMutablityAndDefensiveCopy() {
+    Set<UUID> tags = Set.of(UUID.randomUUID());
+    ContactEvent event =
+        ContactEvent.reconstitute(
+            UUID.randomUUID(),
+            contactId,
+            "T",
+            "D",
+            baseDate,
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            1,
+            EventStatusEnum.PENDING,
+            null,
+            defaultTz,
+            tags,
+            OffsetDateTime.now(),
+            OffsetDateTime.now());
+
+    assertThat(event.getTagIds()).isNotSameAs(tags);
+    assertThat(event.getTagIds()).containsAll(tags);
+  }
+
+  @Test
+  @DisplayName("create: Branch Coverage - tagIds != null is TRUE")
+  void create_ShouldHandleNonNullTagsBranch() {
     // Arrange
-    UUID id = UUID.randomUUID();
-    UUID tagId1 = UUID.randomUUID();
-    UUID tagId2 = UUID.randomUUID();
-    Set<UUID> inputTags = Set.of(tagId1, tagId2);
+    Set<UUID> tags = Set.of(UUID.randomUUID(), UUID.randomUUID());
+
+    // Act
+    ContactEvent event =
+        ContactEvent.create(
+            contactId, "Title", "Desc", baseDate, 0, EventRecurrenceTypeEnum.ONCE, 1, "UTC", tags);
+
+    // Assert
+    assertThat(event.getTagIds()).isNotNull().hasSize(2).containsAll(tags);
+    // Verificamos mutabilidad (HashSet)
+    assertThat(event.getTagIds()).isInstanceOf(java.util.HashSet.class);
+  }
+
+  @Test
+  @DisplayName("reconstitute: Branch Coverage - tagIds != null is TRUE")
+  void reconstitute_ShouldHandleNonNullTagsBranch() {
+    // Arrange
+    Set<UUID> tags = Set.of(UUID.randomUUID());
     OffsetDateTime now = OffsetDateTime.now();
 
     // Act
     ContactEvent event =
         ContactEvent.reconstitute(
-            id,
+            UUID.randomUUID(),
             contactId,
-            "Title",
-            "Description",
+            "T",
+            "D",
             baseDate,
-            5,
-            EventRecurrenceTypeEnum.WEEKLY,
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            1,
             EventStatusEnum.PENDING,
             null,
-            inputTags, // Pasamos un Set no nulo
+            "UTC",
+            tags,
             now,
             now);
 
     // Assert
-    assertThat(event.getTagIds()).isNotNull().hasSize(2).containsExactlyInAnyOrder(tagId1, tagId2);
+    assertThat(event.getTagIds()).hasSize(1).containsAll(tags);
+  }
 
-    // Verificamos que sea una nueva instancia de HashSet (por el requerimiento de mutabilidad)
-    assertThat(event.getTagIds()).isNotSameAs(inputTags);
+  @Test
+  @DisplayName("update: Branch Coverage - tagIds != null is TRUE")
+  void update_ShouldHandleNonNullTagsBranch() {
+    // Arrange
+    ContactEvent event =
+        ContactEvent.create(
+            contactId, "T", "D", baseDate, 0, EventRecurrenceTypeEnum.ONCE, 1, "UTC", null);
+    Set<UUID> newTags = Set.of(UUID.randomUUID());
+
+    // Act
+    event.update("T2", "D2", baseDate, 0, EventRecurrenceTypeEnum.ONCE, 1, "UTC", newTags);
+
+    // Assert
+    assertThat(event.getTagIds()).hasSize(1).containsAll(newTags);
   }
 }

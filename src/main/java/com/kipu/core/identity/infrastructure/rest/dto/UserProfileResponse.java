@@ -17,4 +17,5 @@ public class UserProfileResponse {
   private final boolean onboardingCompleted;
   private final String firstName;
   private final String lastName;
+  private final UUID selfContactId;
 }

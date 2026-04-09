@@ -7,7 +7,12 @@ import java.util.UUID;
 public interface ProfileSyncPort {
 
   ContactProfileInfo createSelfContact(
-      UUID userId, String firstName, String lastName, String email, LocalDate birthdate);
+      UUID userId,
+      String firstName,
+      String lastName,
+      String email,
+      LocalDate birthdate,
+      String timezone);
 
   Optional<ContactProfileInfo> getContactById(UUID contactId);
 }

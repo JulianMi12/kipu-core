@@ -42,4 +42,11 @@ public class JpaUserTagRepositoryAdapter implements UserTagRepository {
   public boolean existsByNameAndOwnerUserId(String name, UUID ownerUserId) {
     return jpaUserTagRepository.existsByNameAndOwnerUserId(name, ownerUserId);
   }
+
+  @Override
+  public Optional<UserTag> findByOwnerUserIdAndNameIgnoreCase(UUID ownerUserId, String name) {
+    return jpaUserTagRepository
+        .findByOwnerUserIdAndNameIgnoreCase(ownerUserId, name)
+        .map(UserTagJpaEntity::toDomain);
+  }
 }

@@ -6,4 +6,7 @@ import jakarta.validation.constraints.Past;
 import java.time.LocalDate;
 
 public record OnboardingRequest(
-    @NotBlank String firstName, @NotBlank String lastName, @NotNull @Past LocalDate birthdate) {}
+    @NotBlank String firstName,
+    @NotBlank String lastName,
+    @NotNull @Past LocalDate birthdate,
+    @NotBlank String timezone) {}

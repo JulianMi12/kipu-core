@@ -13,7 +13,6 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -46,8 +45,8 @@ public class ContactEventJpaEntity {
   @Column(name = "description", columnDefinition = "TEXT")
   private String description;
 
-  @Column(name = "base_date", nullable = false)
-  private LocalDate baseDate;
+  @Column(name = "start_date_time", nullable = false)
+  private OffsetDateTime startDateTime;
 
   @Column(name = "alert_lead_time_days", nullable = false)
   private int alertLeadTimeDays;
@@ -60,13 +59,19 @@ public class ContactEventJpaEntity {
       columnDefinition = "contacts.event_recurrence_type")
   private EventRecurrenceTypeEnum recurrenceType;
 
+  @Column(name = "recurrence_interval", nullable = false)
+  private int recurrenceInterval;
+
   @Enumerated(EnumType.STRING)
   @JdbcType(PostgreSQLEnumJdbcType.class)
   @Column(name = "status", nullable = false, columnDefinition = "contacts.event_status")
   private EventStatusEnum status;
 
   @Column(name = "last_completed_date")
-  private LocalDate lastCompletedDate;
+  private OffsetDateTime lastCompletedDate;
+
+  @Column(name = "timezone", length = 50)
+  private String timezone;
 
   @Column(name = "created_at", nullable = false, updatable = false)
   private OffsetDateTime createdAt;
@@ -88,11 +93,13 @@ public class ContactEventJpaEntity {
         event.getContactId(),
         event.getTitle(),
         event.getDescription(),
-        event.getBaseDate(),
+        event.getStartDateTime(),
         event.getAlertLeadTimeDays(),
         event.getRecurrenceType(),
+        event.getRecurrenceInterval(),
         event.getStatus(),
         event.getLastCompletedDate(),
+        event.getTimezone(),
         event.getCreatedAt(),
         event.getUpdatedAt(),
         event.getTagIds() != null ? new HashSet<>(event.getTagIds()) : new HashSet<>());
@@ -104,11 +111,13 @@ public class ContactEventJpaEntity {
         contactId,
         title,
         description,
-        baseDate,
+        startDateTime,
         alertLeadTimeDays,
         recurrenceType,
+        recurrenceInterval,
         status,
         lastCompletedDate,
+        timezone,
         this.tagIds != null ? this.tagIds : new HashSet<>(),
         createdAt,
         updatedAt);

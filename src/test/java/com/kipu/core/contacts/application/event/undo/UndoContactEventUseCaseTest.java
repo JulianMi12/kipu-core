@@ -17,10 +17,12 @@ import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
 import com.kipu.core.contacts.domain.model.enums.EventStatusEnum;
 import com.kipu.core.contacts.domain.repository.ContactEventRepository;
 import com.kipu.core.contacts.domain.repository.ContactRepository;
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,13 +38,15 @@ class UndoContactEventUseCaseTest {
   @InjectMocks private UndoContactEventUseCase undoContactEventUseCase;
 
   @Test
+  @DisplayName("execute: Should return result with PENDING status when undo is successful")
   void execute_ShouldReturnResult_WhenUndoIsSuccessful() {
     // Arrange
     UUID userId = UUID.randomUUID();
     UUID contactId = UUID.randomUUID();
     UUID eventId = UUID.randomUUID();
-    LocalDate originalDate = LocalDate.now().minusDays(1);
+    OffsetDateTime originalDate = OffsetDateTime.now().minusDays(1);
 
+    // Corregido: 9 argumentos incluyendo recurrenceInterval y timezone
     ContactEvent event =
         ContactEvent.create(
             contactId,
@@ -51,11 +55,15 @@ class UndoContactEventUseCaseTest {
             originalDate,
             0,
             EventRecurrenceTypeEnum.ONCE,
+            1,
+            "UTC",
             Set.of());
-    event.complete(); // Estado actual: COMPLETED, lastCompletedDate: today
+
+    event.complete(); // Estado actual: COMPLETED
 
     Contact contact =
-        Contact.reconstitute(contactId, userId, "Juan", "Perez", null, null, null, Set.of(), null);
+        Contact.reconstitute(
+            contactId, userId, "Juan", "Perez", null, null, Map.of(), Set.of(), null);
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.of(contact));
@@ -75,6 +83,7 @@ class UndoContactEventUseCaseTest {
   }
 
   @Test
+  @DisplayName("execute: Should throw ContactEventNotFoundException when event does not exist")
   void execute_ShouldThrowContactEventNotFoundException_WhenEventDoesNotExist() {
     // Arrange
     UUID userId = UUID.randomUUID();
@@ -90,6 +99,7 @@ class UndoContactEventUseCaseTest {
   }
 
   @Test
+  @DisplayName("execute: Should throw ContactNotFoundException when associated contact is missing")
   void execute_ShouldThrowContactNotFoundException_WhenContactDoesNotExist() {
     // Arrange
     UUID userId = UUID.randomUUID();
@@ -98,7 +108,15 @@ class UndoContactEventUseCaseTest {
 
     ContactEvent event =
         ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE, Set.of());
+            contactId,
+            "Title",
+            "Desc",
+            OffsetDateTime.now(),
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            1,
+            "UTC",
+            Set.of());
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.empty());
@@ -111,6 +129,8 @@ class UndoContactEventUseCaseTest {
   }
 
   @Test
+  @DisplayName(
+      "execute: Should throw UnauthorizedContactAccessException when user is not the owner")
   void execute_ShouldThrowUnauthorizedContactAccessException_WhenUserIsNotOwner() {
     // Arrange
     UUID authenticatedUserId = UUID.randomUUID();
@@ -120,11 +140,19 @@ class UndoContactEventUseCaseTest {
 
     ContactEvent event =
         ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE, Set.of());
+            contactId,
+            "Title",
+            "Desc",
+            OffsetDateTime.now(),
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            1,
+            "UTC",
+            Set.of());
 
     Contact contact =
         Contact.reconstitute(
-            contactId, differentOwnerId, "Juan", "Perez", null, null, null, Set.of(), null);
+            contactId, differentOwnerId, "Juan", "Perez", null, null, Map.of(), Set.of(), null);
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.of(contact));

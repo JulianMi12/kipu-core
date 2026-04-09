@@ -52,11 +52,12 @@ class OnboardingControllerTest {
     LocalDate birthdate = LocalDate.of(1990, 1, 1);
     OffsetDateTime now = OffsetDateTime.now();
 
-    OnboardingRequest request = new OnboardingRequest("Julian", "Miranda", birthdate);
+    OnboardingRequest request =
+        new OnboardingRequest("Julian", "Miranda", birthdate, "America/Bogota");
 
     UserProfileResult result =
         new UserProfileResult(
-            userId, email, true, now, KycStatus.COMPLETED, true, "Julian", "Miranda");
+            userId, email, true, now, KycStatus.COMPLETED, true, "Julian", "Miranda", null);
 
     UserProfileResponse response =
         UserProfileResponse.builder().id(userId).email(email).active(true).createdAt(now).build();
@@ -86,7 +87,8 @@ class OnboardingControllerTest {
   @DisplayName("PATCH /complete: Should return 403 when no authentication is provided")
   void completeOnboarding_ShouldReturnForbidden_WhenNotAuthenticated() throws Exception {
     // Arrange
-    OnboardingRequest request = new OnboardingRequest("Julian", "Miranda", LocalDate.now());
+    OnboardingRequest request =
+        new OnboardingRequest("Julian", "Miranda", LocalDate.now(), "America/Bogota");
 
     // Act & Assert
     mockMvc

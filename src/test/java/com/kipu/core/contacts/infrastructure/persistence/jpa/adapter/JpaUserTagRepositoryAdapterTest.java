@@ -107,4 +107,61 @@ class JpaUserTagRepositoryAdapterTest {
     assertThat(exists).isTrue();
     verify(jpaUserTagRepository).existsByNameAndOwnerUserId(name, ownerId);
   }
+
+  @Test
+  @DisplayName("findById: Should return empty Optional when tag not found")
+  void findById_ShouldReturnEmpty_WhenNotFound() {
+    // Arrange
+    UUID id = UUID.randomUUID();
+    when(jpaUserTagRepository.findById(id)).thenReturn(Optional.empty());
+
+    // Act
+    Optional<UserTag> result = jpaUserTagRepositoryAdapter.findById(id);
+
+    // Assert
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "findByOwnerUserIdAndNameIgnoreCase: Should return domain tag when found by owner and name")
+  void findByOwnerUserIdAndNameIgnoreCase_ShouldReturnTag_WhenFound() {
+    // Arrange
+    UUID ownerId = UUID.randomUUID();
+    UUID tagId = UUID.randomUUID();
+    String name = "CUMPLEAÑOS";
+    UserTagJpaEntity entity = new UserTagJpaEntity(tagId, ownerId, "Cumpleaños", "#EC4899");
+
+    when(jpaUserTagRepository.findByOwnerUserIdAndNameIgnoreCase(ownerId, name))
+        .thenReturn(Optional.of(entity));
+
+    // Act
+    Optional<UserTag> result =
+        jpaUserTagRepositoryAdapter.findByOwnerUserIdAndNameIgnoreCase(ownerId, name);
+
+    // Assert
+    assertThat(result).isPresent();
+    assertThat(result.get().getName()).isEqualTo("cumpleaños");
+    assertThat(result.get().getId()).isEqualTo(tagId);
+    verify(jpaUserTagRepository).findByOwnerUserIdAndNameIgnoreCase(ownerId, name);
+  }
+
+  @Test
+  @DisplayName("findByOwnerUserIdAndNameIgnoreCase: Should return empty when not found")
+  void findByOwnerUserIdAndNameIgnoreCase_ShouldReturnEmpty_WhenNotFound() {
+    // Arrange
+    UUID ownerId = UUID.randomUUID();
+    String name = "Inexistente";
+
+    when(jpaUserTagRepository.findByOwnerUserIdAndNameIgnoreCase(ownerId, name))
+        .thenReturn(Optional.empty());
+
+    // Act
+    Optional<UserTag> result =
+        jpaUserTagRepositoryAdapter.findByOwnerUserIdAndNameIgnoreCase(ownerId, name);
+
+    // Assert
+    assertThat(result).isEmpty();
+    verify(jpaUserTagRepository).findByOwnerUserIdAndNameIgnoreCase(ownerId, name);
+  }
 }

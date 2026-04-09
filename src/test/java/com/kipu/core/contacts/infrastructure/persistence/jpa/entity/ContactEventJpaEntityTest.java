@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 import com.kipu.core.contacts.domain.model.ContactEvent;
 import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
 import com.kipu.core.contacts.domain.model.enums.EventStatusEnum;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -23,17 +22,22 @@ class ContactEventJpaEntityTest {
     UUID id = UUID.randomUUID();
     UUID contactId = UUID.randomUUID();
     UUID tagId = UUID.randomUUID();
+    OffsetDateTime startDateTime = OffsetDateTime.now().plusDays(5);
+
+    // Reconstitute con 12 argumentos
     ContactEvent domainEvent =
         ContactEvent.reconstitute(
             id,
             contactId,
             "Renovar Pasaporte",
             "Trámite presencial",
-            LocalDate.of(2026, 4, 10),
+            startDateTime,
             30,
             EventRecurrenceTypeEnum.YEARLY,
+            1, // recurrenceInterval
             EventStatusEnum.PENDING,
             null,
+            "UTC",
             Set.of(tagId),
             OffsetDateTime.now(),
             OffsetDateTime.now());
@@ -44,6 +48,8 @@ class ContactEventJpaEntityTest {
     // Assert
     assertThat(entity).isNotNull();
     assertThat(entity.getId()).isEqualTo(id);
+    assertThat(entity.getRecurrenceInterval()).isEqualTo(1);
+    assertThat(entity.getTimezone()).isEqualTo("UTC");
     assertThat(entity.getTagIds()).containsExactly(tagId);
   }
 
@@ -54,17 +60,21 @@ class ContactEventJpaEntityTest {
     UUID id = UUID.randomUUID();
     UUID contactId = UUID.randomUUID();
     UUID tagId = UUID.randomUUID();
+    OffsetDateTime startDateTime = OffsetDateTime.now();
+
     ContactEventJpaEntity entity =
         new ContactEventJpaEntity(
             id,
             contactId,
             "Pagar Gimnasio",
             "Suscripción mensual",
-            LocalDate.of(2026, 5, 1),
+            startDateTime,
             3,
             EventRecurrenceTypeEnum.MONTHLY,
+            1, // recurrenceInterval
             EventStatusEnum.COMPLETED,
-            LocalDate.of(2026, 4, 1),
+            startDateTime.minusMonths(1),
+            "America/Bogota",
             OffsetDateTime.now().minusDays(30),
             OffsetDateTime.now(),
             new HashSet<>(Set.of(tagId)));
@@ -76,25 +86,26 @@ class ContactEventJpaEntityTest {
     assertThat(domainEvent).isNotNull();
     assertThat(domainEvent.getId()).isEqualTo(id);
     assertThat(domainEvent.getTagIds()).containsExactly(tagId);
+    assertThat(domainEvent.getTimezone()).isEqualTo("America/Bogota");
   }
 
   @Test
   @DisplayName("fromDomain: Should handle null tag sets in domain by creating an empty HashSet")
   void fromDomain_ShouldHandleNullTagsInDomain() {
-    // Usamos el constructor de reconstitute con null en tags si el dominio lo permite
-    // o simplemente un set vacío para verificar la lógica del ternario en la entidad
     ContactEvent domainEvent =
         ContactEvent.reconstitute(
             UUID.randomUUID(),
             UUID.randomUUID(),
             "T",
             "D",
-            LocalDate.now(),
+            OffsetDateTime.now(),
             0,
             EventRecurrenceTypeEnum.ONCE,
+            1,
             EventStatusEnum.PENDING,
             null,
-            null, // Forzamos null para probar el ternario
+            "UTC",
+            null, // Forzamos null para probar el mapeo
             OffsetDateTime.now(),
             OffsetDateTime.now());
 
@@ -107,12 +118,34 @@ class ContactEventJpaEntityTest {
   @DisplayName("toDomain: Should handle null tagIds field in entity")
   void toDomain_ShouldHandleNullTagIdsInEntity() {
     ContactEventJpaEntity entity = new ContactEventJpaEntity();
-    entity.setTagIds(null); // Simulamos estado de la DB antes de la inicialización
+    entity.setTagIds(null);
     entity.setId(UUID.randomUUID());
+    entity.setStartDateTime(OffsetDateTime.now()); // Requerido para evitar NPE en toDomain
+    entity.setRecurrenceType(EventRecurrenceTypeEnum.ONCE);
 
     ContactEvent domain = entity.toDomain();
 
     assertThat(domain.getTagIds()).isNotNull().isEmpty();
+  }
+
+  @Test
+  @DisplayName("fromDomain: Should handle null tags from domain using the ternary operator")
+  void fromDomain_ShouldHandleNullTagsSpecifically() {
+    // Arrange
+    ContactEvent mockEvent = org.mockito.Mockito.mock(ContactEvent.class);
+
+    UUID id = UUID.randomUUID();
+    when(mockEvent.getId()).thenReturn(id);
+    when(mockEvent.getTagIds()).thenReturn(null);
+    when(mockEvent.getCreatedAt()).thenReturn(OffsetDateTime.now());
+    when(mockEvent.getUpdatedAt()).thenReturn(OffsetDateTime.now());
+
+    // Act
+    ContactEventJpaEntity entity = ContactEventJpaEntity.fromDomain(mockEvent);
+
+    // Assert
+    assertThat(entity).isNotNull();
+    assertThat(entity.getTagIds()).isNotNull().isEmpty();
   }
 
   @Test
@@ -126,34 +159,14 @@ class ContactEventJpaEntityTest {
     // Act
     entity.setId(id);
     entity.setTitle("Test Title");
+    entity.setRecurrenceInterval(1);
+    entity.setTimezone("UTC");
     entity.setTagIds(tags);
 
     // Assert
     assertThat(entity.getId()).isEqualTo(id);
     assertThat(entity.getTitle()).isEqualTo("Test Title");
     assertThat(entity.getTagIds()).isEqualTo(tags);
-  }
-
-  @Test
-  @DisplayName("fromDomain: Should handle null tags from domain using the ternary operator")
-  void fromDomain_ShouldHandleNullTagsSpecifically() {
-    // Arrange
-    // Usamos un Mock del objeto de dominio para forzar que getTagIds() devuelva null
-    // sin pasar por el constructor real de ContactEvent que tiene la protección.
-    ContactEvent mockEvent = org.mockito.Mockito.mock(ContactEvent.class);
-
-    UUID id = UUID.randomUUID();
-    when(mockEvent.getId()).thenReturn(id);
-    when(mockEvent.getTagIds()).thenReturn(null); // Forzamos el escenario nulo
-    when(mockEvent.getCreatedAt()).thenReturn(OffsetDateTime.now());
-    when(mockEvent.getUpdatedAt()).thenReturn(OffsetDateTime.now());
-
-    // Act
-    ContactEventJpaEntity entity = ContactEventJpaEntity.fromDomain(mockEvent);
-
-    // Assert
-    assertThat(entity).isNotNull();
-    assertThat(entity.getId()).isEqualTo(id);
-    assertThat(entity.getTagIds()).isNotNull().isEmpty(); // El ternario funcionó
+    assertThat(entity.getRecurrenceInterval()).isEqualTo(1);
   }
 }

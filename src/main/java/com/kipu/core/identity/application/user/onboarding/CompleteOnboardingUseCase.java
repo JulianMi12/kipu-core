@@ -46,7 +46,8 @@ public class CompleteOnboardingUseCase {
         userKyc.getStatus(),
         userKyc.isOnboardingCompleted(),
         contactInfo.firstName(),
-        contactInfo.lastName());
+        contactInfo.lastName(),
+        contactInfo.contactId());
   }
 
   private UserKyc getUserKyc(CompleteOnboardingCommand command) {
@@ -75,7 +76,12 @@ public class CompleteOnboardingUseCase {
       String email, CompleteOnboardingCommand command) {
     try {
       return profileSyncPort.createSelfContact(
-          command.userId(), command.firstName(), command.lastName(), email, command.birthdate());
+          command.userId(),
+          command.firstName(),
+          command.lastName(),
+          email,
+          command.birthdate(),
+          command.timezone());
     } catch (Exception e) {
       log.error(
           "[CompleteOnboardingUseCase] Failed to sync profile with Contacts module for user: {}",

@@ -3,9 +3,10 @@ package com.kipu.core.identity.infrastructure.contacts;
 import com.kipu.core.contacts.application.contact.create.CreateContactCommand;
 import com.kipu.core.contacts.application.contact.create.CreateContactUseCase;
 import com.kipu.core.contacts.application.contact.get.ContactSummaryResult;
+import com.kipu.core.contacts.application.event.birthday.EnsureBirthdayEventUseCase;
 import com.kipu.core.contacts.application.tag.create.CreateUserTagCommand;
-import com.kipu.core.contacts.application.tag.create.CreateUserTagResult;
 import com.kipu.core.contacts.application.tag.create.CreateUserTagUseCase;
+import com.kipu.core.contacts.domain.model.Contact;
 import com.kipu.core.contacts.domain.repository.ContactRepository;
 import com.kipu.core.identity.domain.port.out.ContactProfileInfo;
 import com.kipu.core.identity.domain.port.out.ProfileSyncPort;
@@ -23,49 +24,75 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ContactsProfileSyncAdapter implements ProfileSyncPort {
 
-  private static final String DEFAULT_TAG_NAME = "personal";
-  private static final String DEFAULT_TAG_COLOR = "#4F46E5";
+  private static final String PERSONAL_TAG = "Personal";
+  private static final String BIRTHDAY_TAG = "Cumpleaños";
+  private static final String PRIMARY_COLOR = "#4F46E5";
+  private static final String ACCENT_COLOR = "#EC4899";
 
-  private final CreateContactUseCase createContactUseCase;
   private final ContactRepository contactRepository;
+  private final CreateContactUseCase createContactUseCase;
   private final CreateUserTagUseCase createUserTagUseCase;
+  private final EnsureBirthdayEventUseCase ensureBirthdayEventUseCase;
 
   @Override
   public ContactProfileInfo createSelfContact(
-      UUID userId, String firstName, String lastName, String email, LocalDate birthdate) {
-    log.info("[ContactsProfileSyncAdapter] Creating self-contact for user id: {}", userId);
+      UUID userId, String first, String last, String email, LocalDate birth, String timeZone) {
 
-    CreateUserTagResult personalTag =
-        createUserTagUseCase.execute(
-            new CreateUserTagCommand(userId, DEFAULT_TAG_NAME, DEFAULT_TAG_COLOR));
-    log.info(
-        "[ContactsProfileSyncAdapter] Created Personal tag with id: {} for user id: {}",
-        personalTag.tagId(),
-        userId);
+    log.info("[ContactsProfileSyncAdapter] Syncing self-contact for user: {}", userId);
+    UUID personalTagId = createTag(userId, PERSONAL_TAG, PRIMARY_COLOR);
+    UUID birthdayTagId = createTag(userId, BIRTHDAY_TAG, ACCENT_COLOR);
 
     ContactSummaryResult result =
         createContactUseCase.execute(
             new CreateContactCommand(
                 userId,
-                firstName,
-                lastName,
+                first,
+                last,
                 email,
-                birthdate,
+                birth,
                 Map.of(),
-                Set.of(personalTag.tagId())));
+                Set.of(personalTagId, birthdayTagId),
+                timeZone));
 
-    log.info(
-        "[ContactsProfileSyncAdapter] Self-contact created with id: {} for user id: {}",
-        result.id(),
-        userId);
+    automateBirthday(userId, birth, timeZone, result, birthdayTagId, personalTagId);
+
     return new ContactProfileInfo(result.id(), result.firstName(), result.lastName());
+  }
+
+  private UUID createTag(UUID userId, String name, String color) {
+    return createUserTagUseCase.execute(new CreateUserTagCommand(userId, name, color)).tagId();
+  }
+
+  private void automateBirthday(
+      UUID userId,
+      LocalDate birth,
+      String timeZone,
+      ContactSummaryResult res,
+      UUID bDayTag,
+      UUID pTag) {
+    if (birth == null) return;
+
+    String effectiveTz = (timeZone != null && !timeZone.isBlank()) ? timeZone : "UTC";
+
+    Contact contact =
+        Contact.reconstitute(
+            res.id(),
+            userId,
+            res.firstName(),
+            res.lastName(),
+            res.primaryEmail(),
+            birth,
+            Map.of(),
+            Set.of(pTag, bDayTag),
+            null);
+
+    ensureBirthdayEventUseCase.execute(contact, bDayTag, effectiveTz, true);
   }
 
   @Override
   public Optional<ContactProfileInfo> getContactById(UUID contactId) {
-    log.debug("[ContactsProfileSyncAdapter] Fetching contact by id: {}", contactId);
     return contactRepository
-        .findByIdWithTags(contactId)
+        .findById(contactId)
         .map(c -> new ContactProfileInfo(c.getId(), c.getFirstName(), c.getLastName()));
   }
 }

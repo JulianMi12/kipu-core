@@ -46,9 +46,11 @@ public class UpdateContactEventUseCase {
     event.update(
         command.title(),
         command.description(),
-        command.baseDate(),
+        command.startDateTime(),
         command.alertLeadTimeDays(),
         command.recurrenceType(),
+        command.recurrenceInterval(),
+        command.timezone(),
         command.tagIds());
 
     ContactEvent updatedEvent = contactEventRepository.save(event);

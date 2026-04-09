@@ -12,4 +12,5 @@ public record UserProfileResult(
     KycStatus kycStatus,
     boolean onboardingCompleted,
     String firstName,
-    String lastName) {}
+    String lastName,
+    UUID selfContactId) {}

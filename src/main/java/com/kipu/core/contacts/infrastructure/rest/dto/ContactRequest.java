@@ -1,5 +1,6 @@
 package com.kipu.core.contacts.infrastructure.rest.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Set;
@@ -11,4 +12,5 @@ public record ContactRequest(
     String primaryEmail,
     LocalDate birthdate,
     Map<String, Object> dynamicAttributes,
-    Set<UUID> tagIds) {}
+    Set<UUID> tagIds,
+    @NotBlank String timezone) {}

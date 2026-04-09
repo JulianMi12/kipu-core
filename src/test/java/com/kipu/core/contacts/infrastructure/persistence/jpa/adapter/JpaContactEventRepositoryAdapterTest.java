@@ -7,9 +7,10 @@ import static org.mockito.Mockito.when;
 
 import com.kipu.core.contacts.domain.model.ContactEvent;
 import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
+import com.kipu.core.contacts.domain.model.enums.EventStatusEnum;
 import com.kipu.core.contacts.infrastructure.persistence.jpa.entity.ContactEventJpaEntity;
 import com.kipu.core.contacts.infrastructure.persistence.jpa.repository.JpaContactEventRepository;
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -31,15 +32,19 @@ class JpaContactEventRepositoryAdapterTest {
   @DisplayName("save: Should map to entity, save, and map back to domain")
   void save_ShouldReturnSavedContactEvent_WhenDataIsValid() {
     // Arrange
+    // Corregido: Firma de 9 argumentos y OffsetDateTime
     ContactEvent event =
         ContactEvent.create(
             UUID.randomUUID(),
             "Test Event",
             "Description",
-            LocalDate.now(),
+            OffsetDateTime.now(),
             5,
             EventRecurrenceTypeEnum.ONCE,
+            1,
+            "UTC",
             Set.of());
+
     ContactEventJpaEntity entity = ContactEventJpaEntity.fromDomain(event);
 
     when(jpaContactEventRepository.save(any(ContactEventJpaEntity.class))).thenReturn(entity);
@@ -58,9 +63,7 @@ class JpaContactEventRepositoryAdapterTest {
   void findById_ShouldReturnOptionalWithEvent_WhenEventExists() {
     // Arrange
     UUID eventId = UUID.randomUUID();
-    ContactEventJpaEntity entity = new ContactEventJpaEntity();
-    entity.setId(eventId);
-    entity.setTitle("Basic Title");
+    ContactEventJpaEntity entity = createMockEntity(eventId);
 
     when(jpaContactEventRepository.findById(eventId)).thenReturn(Optional.of(entity));
 
@@ -79,8 +82,7 @@ class JpaContactEventRepositoryAdapterTest {
     // Arrange
     UUID eventId = UUID.randomUUID();
     UUID tagId = UUID.randomUUID();
-    ContactEventJpaEntity entity = new ContactEventJpaEntity();
-    entity.setId(eventId);
+    ContactEventJpaEntity entity = createMockEntity(eventId);
     entity.setTagIds(Set.of(tagId));
 
     when(jpaContactEventRepository.findByIdWithTags(eventId)).thenReturn(Optional.of(entity));
@@ -120,5 +122,70 @@ class JpaContactEventRepositoryAdapterTest {
 
     // Assert
     verify(jpaContactEventRepository).deleteById(eventId);
+  }
+
+  /** Helper para crear una entidad JPA válida que no rompa el mapeo toDomain() */
+  private ContactEventJpaEntity createMockEntity(UUID id) {
+    ContactEventJpaEntity entity = new ContactEventJpaEntity();
+    entity.setId(id);
+    entity.setContactId(UUID.randomUUID());
+    entity.setTitle("Title");
+    entity.setDescription("Description");
+    entity.setStartDateTime(OffsetDateTime.now());
+    entity.setAlertLeadTimeDays(0);
+    entity.setRecurrenceType(EventRecurrenceTypeEnum.ONCE);
+    entity.setRecurrenceInterval(1);
+    entity.setStatus(EventStatusEnum.PENDING);
+    entity.setTimezone("UTC");
+    entity.setTagIds(Set.of());
+    entity.setCreatedAt(OffsetDateTime.now());
+    entity.setUpdatedAt(OffsetDateTime.now());
+    return entity;
+  }
+
+  @Test
+  @DisplayName(
+      "findByContactIdAndTagIdsContains: Should return event when contactId and tagId match")
+  void findByContactIdAndTagIdsContains_ShouldReturnEvent_WhenMatches() {
+    // Arrange
+    UUID contactId = UUID.randomUUID();
+    UUID tagId = UUID.randomUUID();
+    UUID eventId = UUID.randomUUID();
+
+    ContactEventJpaEntity entity = createMockEntity(eventId);
+    entity.setContactId(contactId);
+    entity.setTagIds(Set.of(tagId));
+
+    when(jpaContactEventRepository.findByContactIdAndTagId(contactId, tagId))
+        .thenReturn(Optional.of(entity));
+
+    // Act
+    Optional<ContactEvent> result =
+        jpaContactEventRepositoryAdapter.findByContactIdAndTagIdsContains(contactId, tagId);
+
+    // Assert
+    assertThat(result).isPresent();
+    assertThat(result.get().getContactId()).isEqualTo(contactId);
+    assertThat(result.get().getTagIds()).contains(tagId);
+    verify(jpaContactEventRepository).findByContactIdAndTagId(contactId, tagId);
+  }
+
+  @Test
+  @DisplayName("findByContactIdAndTagIdsContains: Should return empty when no match found")
+  void findByContactIdAndTagIdsContains_ShouldReturnEmpty_WhenNoMatch() {
+    // Arrange
+    UUID contactId = UUID.randomUUID();
+    UUID tagId = UUID.randomUUID();
+
+    when(jpaContactEventRepository.findByContactIdAndTagId(contactId, tagId))
+        .thenReturn(Optional.empty());
+
+    // Act
+    Optional<ContactEvent> result =
+        jpaContactEventRepositoryAdapter.findByContactIdAndTagIdsContains(contactId, tagId);
+
+    // Assert
+    assertThat(result).isEmpty();
+    verify(jpaContactEventRepository).findByContactIdAndTagId(contactId, tagId);
   }
 }

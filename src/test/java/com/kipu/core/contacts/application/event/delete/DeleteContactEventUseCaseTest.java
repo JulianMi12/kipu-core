@@ -14,10 +14,12 @@ import com.kipu.core.contacts.domain.model.ContactEvent;
 import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
 import com.kipu.core.contacts.domain.repository.ContactEventRepository;
 import com.kipu.core.contacts.domain.repository.ContactRepository;
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,19 +35,30 @@ class DeleteContactEventUseCaseTest {
   @InjectMocks private DeleteContactEventUseCase deleteContactEventUseCase;
 
   @Test
+  @DisplayName(
+      "execute: Should delete event when event exists and user owns the associated contact")
   void execute_ShouldDeleteEvent_WhenUserIsOwner() {
     // Arrange
     UUID authenticatedUserId = UUID.randomUUID();
     UUID contactId = UUID.randomUUID();
     UUID eventId = UUID.randomUUID();
 
+    // Usamos el método de creación real del dominio con los parámetros actuales
     ContactEvent event =
         ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE, Set.of());
+            contactId,
+            "Title",
+            "Desc",
+            OffsetDateTime.now(),
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            1,
+            "UTC",
+            Set.of());
 
     Contact contact =
         Contact.reconstitute(
-            contactId, authenticatedUserId, "Juan", "Perez", null, null, null, Set.of(), null);
+            contactId, authenticatedUserId, "Juan", "Perez", null, null, Map.of(), Set.of(), null);
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.of(contact));
@@ -54,12 +67,13 @@ class DeleteContactEventUseCaseTest {
     deleteContactEventUseCase.execute(authenticatedUserId, eventId);
 
     // Assert
-    verify(contactEventRepository).delete(eventId);
     verify(contactEventRepository).findById(eventId);
     verify(contactRepository).findById(contactId);
+    verify(contactEventRepository).delete(eventId);
   }
 
   @Test
+  @DisplayName("execute: Should throw ContactEventNotFoundException when event id does not exist")
   void execute_ShouldThrowContactEventNotFoundException_WhenEventDoesNotExist() {
     // Arrange
     UUID eventId = UUID.randomUUID();
@@ -71,11 +85,13 @@ class DeleteContactEventUseCaseTest {
     assertThatThrownBy(() -> deleteContactEventUseCase.execute(userId, eventId))
         .isInstanceOf(ContactEventNotFoundException.class);
 
-    verify(contactEventRepository, never()).delete(eventId);
+    verify(contactEventRepository, never()).delete(any());
     verify(contactRepository, never()).findById(any());
   }
 
   @Test
+  @DisplayName(
+      "execute: Should throw ContactNotFoundException when the associated contact is missing")
   void execute_ShouldThrowContactNotFoundException_WhenAssociatedContactDoesNotExist() {
     // Arrange
     UUID userId = UUID.randomUUID();
@@ -84,7 +100,15 @@ class DeleteContactEventUseCaseTest {
 
     ContactEvent event =
         ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE, Set.of());
+            contactId,
+            "Title",
+            "Desc",
+            OffsetDateTime.now(),
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            1,
+            "UTC",
+            Set.of());
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.empty());
@@ -93,10 +117,12 @@ class DeleteContactEventUseCaseTest {
     assertThatThrownBy(() -> deleteContactEventUseCase.execute(userId, eventId))
         .isInstanceOf(ContactNotFoundException.class);
 
-    verify(contactEventRepository, never()).delete(eventId);
+    verify(contactEventRepository, never()).delete(any());
   }
 
   @Test
+  @DisplayName(
+      "execute: Should throw UnauthorizedContactAccessException when user is not the contact owner")
   void execute_ShouldThrowUnauthorizedContactAccessException_WhenUserIsNotOwner() {
     // Arrange
     UUID authenticatedUserId = UUID.randomUUID();
@@ -106,11 +132,19 @@ class DeleteContactEventUseCaseTest {
 
     ContactEvent event =
         ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE, Set.of());
+            contactId,
+            "Title",
+            "Desc",
+            OffsetDateTime.now(),
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            1,
+            "UTC",
+            Set.of());
 
     Contact contact =
         Contact.reconstitute(
-            contactId, differentOwnerId, "Juan", "Perez", null, null, null, Set.of(), null);
+            contactId, differentOwnerId, "Juan", "Perez", null, null, Map.of(), Set.of(), null);
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.of(contact));
@@ -119,6 +153,6 @@ class DeleteContactEventUseCaseTest {
     assertThatThrownBy(() -> deleteContactEventUseCase.execute(authenticatedUserId, eventId))
         .isInstanceOf(UnauthorizedContactAccessException.class);
 
-    verify(contactEventRepository, never()).delete(eventId);
+    verify(contactEventRepository, never()).delete(any());
   }
 }

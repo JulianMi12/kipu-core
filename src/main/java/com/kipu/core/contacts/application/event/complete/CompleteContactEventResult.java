@@ -3,7 +3,6 @@ package com.kipu.core.contacts.application.event.complete;
 import com.kipu.core.contacts.domain.model.ContactEvent;
 import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
 import com.kipu.core.contacts.domain.model.enums.EventStatusEnum;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -11,11 +10,12 @@ public record CompleteContactEventResult(
     UUID id,
     String title,
     String description,
-    LocalDate baseDate,
+    OffsetDateTime startDateTime,
     int alertLeadTimeDays,
     EventRecurrenceTypeEnum recurrenceType,
     EventStatusEnum status,
-    LocalDate lastCompletedDate,
+    OffsetDateTime lastCompletedDate,
+    String timezone,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt) {
 
@@ -24,11 +24,12 @@ public record CompleteContactEventResult(
         event.getId(),
         event.getTitle(),
         event.getDescription(),
-        event.getBaseDate(),
+        event.getStartDateTime(),
         event.getAlertLeadTimeDays(),
         event.getRecurrenceType(),
         event.getStatus(),
         event.getLastCompletedDate(),
+        event.getTimezone(),
         event.getCreatedAt(),
         event.getUpdatedAt());
   }

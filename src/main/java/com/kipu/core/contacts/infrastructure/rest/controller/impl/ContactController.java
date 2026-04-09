@@ -60,7 +60,8 @@ public class ContactController implements ContactApi {
                 request.primaryEmail(),
                 request.birthdate(),
                 request.dynamicAttributes() != null ? request.dynamicAttributes() : Map.of(),
-                request.tagIds() != null ? request.tagIds() : Set.of()));
+                request.tagIds() != null ? request.tagIds() : Set.of(),
+                request.timezone()));
     return ResponseEntity.status(HttpStatus.CREATED).body(result);
   }
 
@@ -81,7 +82,8 @@ public class ContactController implements ContactApi {
                 request.primaryEmail(),
                 request.birthdate(),
                 request.dynamicAttributes() != null ? request.dynamicAttributes() : Map.of(),
-                request.tagIds() != null ? request.tagIds() : Set.of()));
+                request.tagIds() != null ? request.tagIds() : Set.of(),
+                request.timezone()));
     return ResponseEntity.ok(result);
   }
 

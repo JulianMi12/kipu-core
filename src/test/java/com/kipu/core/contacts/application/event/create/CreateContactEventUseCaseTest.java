@@ -14,10 +14,12 @@ import com.kipu.core.contacts.domain.model.ContactEvent;
 import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
 import com.kipu.core.contacts.domain.repository.ContactEventRepository;
 import com.kipu.core.contacts.domain.repository.ContactRepository;
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,29 +35,43 @@ class CreateContactEventUseCaseTest {
   @InjectMocks private CreateContactEventUseCase createContactEventUseCase;
 
   @Test
+  @DisplayName("execute: Should return event result when data is valid and user is owner")
   void execute_ShouldReturnEventResult_WhenDataIsValidAndUserIsOwner() {
     // Arrange
     UUID authenticatedUserId = UUID.randomUUID();
     UUID contactId = UUID.randomUUID();
+    OffsetDateTime startDateTime = OffsetDateTime.now().plusDays(1);
+    String timezone = "America/Bogota";
+
     CreateContactEventCommand command =
         new CreateContactEventCommand(
             authenticatedUserId,
             contactId,
             "Renovar Seguro",
             "Seguro del auto",
-            LocalDate.of(2026, 6, 15),
+            startDateTime,
             15,
             EventRecurrenceTypeEnum.YEARLY,
+            1,
+            timezone,
             Set.of());
 
-    // Reconstituimos un contacto donde el owner coincide con el del comando
+    // Reconstituimos el contacto
     Contact contact =
         Contact.reconstitute(
-            contactId, authenticatedUserId, "Juan", "Perez", null, null, null, Set.of(), null);
+            contactId,
+            authenticatedUserId,
+            "Juan",
+            "Perez",
+            "juan@test.com",
+            null,
+            Map.of(),
+            Set.of(),
+            OffsetDateTime.now());
 
     when(contactRepository.findById(contactId)).thenReturn(Optional.of(contact));
 
-    // Al guardar, devolvemos el mismo evento (simulando persistencia exitosa)
+    // Usamos thenAnswer para devolver el evento con un ID generado (simulando DB)
     when(contactEventRepository.save(any(ContactEvent.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -67,25 +83,18 @@ class CreateContactEventUseCaseTest {
     assertThat(result.title()).isEqualTo("Renovar Seguro");
     assertThat(result.alertLeadTimeDays()).isEqualTo(15);
     assertThat(result.recurrenceType()).isEqualTo(EventRecurrenceTypeEnum.YEARLY);
+    assertThat(result.timezone()).isEqualTo(timezone);
 
     verify(contactRepository).findById(contactId);
     verify(contactEventRepository).save(any(ContactEvent.class));
   }
 
   @Test
+  @DisplayName("execute: Should throw ContactNotFoundException when contact does not exist")
   void execute_ShouldThrowContactNotFoundException_WhenContactDoesNotExist() {
     // Arrange
     UUID contactId = UUID.randomUUID();
-    CreateContactEventCommand command =
-        new CreateContactEventCommand(
-            UUID.randomUUID(),
-            contactId,
-            "Title",
-            "Desc",
-            LocalDate.now(),
-            0,
-            EventRecurrenceTypeEnum.ONCE,
-            Set.of());
+    CreateContactEventCommand command = createDummyCommand(contactId, UUID.randomUUID());
 
     when(contactRepository.findById(contactId)).thenReturn(Optional.empty());
 
@@ -97,26 +106,19 @@ class CreateContactEventUseCaseTest {
   }
 
   @Test
+  @DisplayName(
+      "execute: Should throw UnauthorizedContactAccessException when user is not the owner")
   void execute_ShouldThrowUnauthorizedContactAccessException_WhenUserIsNotOwner() {
     // Arrange
     UUID authenticatedUserId = UUID.randomUUID();
     UUID contactId = UUID.randomUUID();
     UUID differentOwnerId = UUID.randomUUID();
 
-    CreateContactEventCommand command =
-        new CreateContactEventCommand(
-            authenticatedUserId,
-            contactId,
-            "Title",
-            "Desc",
-            LocalDate.now(),
-            0,
-            EventRecurrenceTypeEnum.ONCE,
-            Set.of());
+    CreateContactEventCommand command = createDummyCommand(contactId, authenticatedUserId);
 
     Contact contact =
         Contact.reconstitute(
-            contactId, differentOwnerId, "Juan", "Perez", null, null, null, Set.of(), null);
+            contactId, differentOwnerId, "Juan", "Perez", null, null, Map.of(), Set.of(), null);
 
     when(contactRepository.findById(contactId)).thenReturn(Optional.of(contact));
 
@@ -125,5 +127,19 @@ class CreateContactEventUseCaseTest {
         .isInstanceOf(UnauthorizedContactAccessException.class);
 
     verify(contactEventRepository, never()).save(any());
+  }
+
+  private CreateContactEventCommand createDummyCommand(UUID contactId, UUID userId) {
+    return new CreateContactEventCommand(
+        userId,
+        contactId,
+        "Title",
+        "Desc",
+        OffsetDateTime.now(),
+        0,
+        EventRecurrenceTypeEnum.ONCE,
+        1,
+        "UTC",
+        Set.of());
   }
 }

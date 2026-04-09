@@ -1,49 +1,47 @@
 package com.kipu.core.contacts.application.event.create;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.kipu.core.contacts.domain.model.ContactEvent;
 import com.kipu.core.contacts.domain.model.enums.EventRecurrenceTypeEnum;
 import com.kipu.core.contacts.domain.model.enums.EventStatusEnum;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class CreateContactEventResultTest {
 
   @Test
+  @DisplayName("from: Should map all fields correctly from ContactEvent domain model")
   void from_ShouldMapAllFieldsCorrectly_WhenDomainEventIsProvided() {
     // Arrange
     UUID eventId = UUID.randomUUID();
-    UUID contactId =
-        UUID.randomUUID(); // Necesario para el dominio, aunque no se expone en el Result
-    String title = "Reunión de Marketing";
-    String description = "Revisar KPIs del trimestre";
-    LocalDate baseDate = LocalDate.of(2026, 4, 15);
-    int alertLeadTimeDays = 2;
-    EventRecurrenceTypeEnum recurrenceType = EventRecurrenceTypeEnum.WEEKLY;
+    String title = "Cumpleaños de Julian 🎂";
+    String description = "¡Hoy celebramos tu vida! Disfruta de tu día al máximo.";
+    OffsetDateTime startDateTime = OffsetDateTime.now().plusDays(10);
+    int alertLeadTimeDays = 0;
+    EventRecurrenceTypeEnum recurrenceType = EventRecurrenceTypeEnum.YEARLY;
     EventStatusEnum status = EventStatusEnum.PENDING;
-    LocalDate lastCompletedDate = LocalDate.of(2026, 4, 8);
-    OffsetDateTime createdAt = OffsetDateTime.now().minusDays(5);
-    OffsetDateTime updatedAt = OffsetDateTime.now();
+    OffsetDateTime lastCompletedDate = null;
+    String timezone = "America/Bogota";
+    Set<UUID> tagIds = Set.of(UUID.randomUUID());
 
-    // Reconstituimos un evento de dominio simulando que viene de la BD
-    ContactEvent domainEvent =
-        ContactEvent.reconstitute(
-            eventId,
-            contactId,
-            title,
-            description,
-            baseDate,
-            alertLeadTimeDays,
-            recurrenceType,
-            status,
-            lastCompletedDate,
-            Set.of(),
-            createdAt,
-            updatedAt);
+    // Mockeamos el dominio para evitar dependencias de lógica interna del modelo
+    ContactEvent domainEvent = mock(ContactEvent.class);
+    when(domainEvent.getId()).thenReturn(eventId);
+    when(domainEvent.getTitle()).thenReturn(title);
+    when(domainEvent.getDescription()).thenReturn(description);
+    when(domainEvent.getStartDateTime()).thenReturn(startDateTime);
+    when(domainEvent.getAlertLeadTimeDays()).thenReturn(alertLeadTimeDays);
+    when(domainEvent.getRecurrenceType()).thenReturn(recurrenceType);
+    when(domainEvent.getStatus()).thenReturn(status);
+    when(domainEvent.getLastCompletedDate()).thenReturn(lastCompletedDate);
+    when(domainEvent.getTimezone()).thenReturn(timezone);
+    when(domainEvent.getTagIds()).thenReturn(tagIds);
 
     // Act
     CreateContactEventResult result = CreateContactEventResult.from(domainEvent);
@@ -53,12 +51,12 @@ class CreateContactEventResultTest {
     assertThat(result.id()).isEqualTo(eventId);
     assertThat(result.title()).isEqualTo(title);
     assertThat(result.description()).isEqualTo(description);
-    assertThat(result.baseDate()).isEqualTo(baseDate);
+    assertThat(result.startDateTime()).isEqualTo(startDateTime);
     assertThat(result.alertLeadTimeDays()).isEqualTo(alertLeadTimeDays);
     assertThat(result.recurrenceType()).isEqualTo(recurrenceType);
     assertThat(result.status()).isEqualTo(status);
     assertThat(result.lastCompletedDate()).isEqualTo(lastCompletedDate);
-    assertThat(result.createdAt()).isEqualTo(createdAt);
-    assertThat(result.updatedAt()).isEqualTo(updatedAt);
+    assertThat(result.timezone()).isEqualTo(timezone);
+    assertThat(result.tagIds()).containsExactlyInAnyOrderElementsOf(tagIds);
   }
 }

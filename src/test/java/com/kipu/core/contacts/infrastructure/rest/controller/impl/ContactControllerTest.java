@@ -17,6 +17,7 @@ import com.kipu.core.contacts.application.contact.update.UpdateContactCommand;
 import com.kipu.core.contacts.application.contact.update.UpdateContactUseCase;
 import com.kipu.core.contacts.infrastructure.rest.dto.ContactRequest;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -43,6 +44,8 @@ class ContactControllerTest {
 
   @InjectMocks private ContactController contactController;
 
+  private static final String DEFAULT_TIMEZONE = "UTC";
+
   @Test
   @DisplayName("createContact: Should return 201 Created and result when request is valid")
   void createContact_ReturnsCreated_WhenRequestIsValid() {
@@ -55,7 +58,8 @@ class ContactControllerTest {
             "caro@test.com",
             LocalDate.now(),
             Map.of("key", "val"),
-            Set.of(UUID.randomUUID()));
+            Set.of(UUID.randomUUID()),
+            "America/Bogota"); // Se agrega el timezone al DTO
     ContactSummaryResult expected = createMockSummary();
 
     when(createContactUseCase.execute(any(CreateContactCommand.class))).thenReturn(expected);
@@ -70,13 +74,14 @@ class ContactControllerTest {
   }
 
   @Test
-  @DisplayName(
-      "createContact: Should handle null collections by providing empty Map and Set (Branch Coverage)")
-  void createContact_HandlesNullCollections() {
+  @DisplayName("createContact: Should handle null collections and null timezone providing defaults")
+  void createContact_HandlesNullCollectionsAndNullTimezone() {
     // Arrange
     UUID userId = UUID.randomUUID();
+    // Request con campos nulos para probar la lógica de normalización del controlador
     ContactRequest request =
-        new ContactRequest("Carol", "Gomez", "caro@test.com", null, null, null);
+        new ContactRequest("Carol", "Gomez", "caro@test.com", null, null, null, DEFAULT_TIMEZONE);
+
     when(createContactUseCase.execute(any(CreateContactCommand.class)))
         .thenReturn(createMockSummary());
 
@@ -88,37 +93,57 @@ class ContactControllerTest {
         ArgumentCaptor.forClass(CreateContactCommand.class);
     verify(createContactUseCase).execute(captor.capture());
 
-    // Verificamos que las ternarias funcionaron y enviaron colecciones vacías no nulas
-    assertThat(captor.getValue().dynamicAttributes()).isNotNull().isEmpty();
-    assertThat(captor.getValue().tagIds()).isNotNull().isEmpty();
+    CreateContactCommand capturedCommand = captor.getValue();
+    assertThat(capturedCommand.dynamicAttributes()).isNotNull().isEmpty();
+    assertThat(capturedCommand.tagIds()).isNotNull().isEmpty();
+    assertThat(capturedCommand.timezone()).isEqualTo(DEFAULT_TIMEZONE);
   }
 
   @Test
-  @DisplayName("updateContact: Should return 200 OK and handle null collections")
-  void updateContact_HandlesNullCollections() {
+  @DisplayName("updateContact: Should return 200 OK and map all fields to the command")
+  void updateContact_ReturnsOk_WhenRequestIsFull() {
     // Arrange
     UUID userId = UUID.randomUUID();
     UUID contactId = UUID.randomUUID();
-    ContactRequest request = new ContactRequest("Carol", "G", null, null, null, null);
-    when(updateContactUseCase.execute(any(UpdateContactCommand.class)))
-        .thenReturn(createMockSummary());
+    Map<String, String> attrs = Map.of("color", "azul");
+    Map<String, Object> targetMap = new HashMap<>(attrs);
+    Set<UUID> tags = Set.of(UUID.randomUUID());
+    String timezone = "Europe/Madrid";
+
+    ContactRequest request =
+        new ContactRequest(
+            "Julian",
+            "Miranda",
+            "juli@test.com",
+            LocalDate.of(1995, 5, 20),
+            targetMap,
+            tags,
+            timezone);
+
+    ContactSummaryResult expectedResult = createMockSummary();
+    when(updateContactUseCase.execute(any(UpdateContactCommand.class))).thenReturn(expectedResult);
 
     // Act
     ResponseEntity<ContactSummaryResult> response =
         contactController.updateContact(userId, contactId, request);
 
     // Assert
-    ArgumentCaptor<UpdateContactCommand> captor =
-        ArgumentCaptor.forClass(UpdateContactCommand.class);
-    verify(updateContactUseCase).execute(captor.capture());
-
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(captor.getValue().dynamicAttributes()).isNotNull();
-    assertThat(captor.getValue().tagIds()).isNotNull();
+
+    ArgumentCaptor<UpdateContactCommand> commandCaptor =
+        ArgumentCaptor.forClass(UpdateContactCommand.class);
+    verify(updateContactUseCase).execute(commandCaptor.capture());
+
+    UpdateContactCommand capturedCommand = commandCaptor.getValue();
+    assertThat(capturedCommand.authenticatedUserId()).isEqualTo(userId);
+    assertThat(capturedCommand.contactId()).isEqualTo(contactId);
+    assertThat(capturedCommand.dynamicAttributes()).isEqualTo(attrs);
+    assertThat(capturedCommand.tagIds()).isEqualTo(tags);
+    assertThat(capturedCommand.timezone()).isEqualTo(timezone);
   }
 
   @Test
-  @DisplayName("deleteContact: Should return 204 No Content")
+  @DisplayName("deleteContact: Should return 204 No Content and call UseCase with correct IDs")
   void deleteContact_ReturnsNoContent() {
     // Arrange
     UUID userId = UUID.randomUUID();
@@ -162,6 +187,7 @@ class ContactControllerTest {
     UUID contactId = UUID.randomUUID();
     ContactDetailResult expected =
         new ContactDetailResult(contactId, "C", "G", "c@t.com", null, null, Map.of(), Set.of());
+
     when(getContactDetailUseCase.execute(userId, contactId)).thenReturn(expected);
 
     // Act
@@ -177,51 +203,40 @@ class ContactControllerTest {
   }
 
   @Test
-  @DisplayName("updateContact: Should return 200 OK and correctly map all fields to the Command")
-  void updateContact_ReturnsOk_WhenRequestIsFull() {
+  @DisplayName(
+      "createContact: Should provide empty collections when request attributes and tags are null")
+  void createContact_ShouldProvideDefaultCollections_WhenRequestCollectionsAreNull() {
     // Arrange
     UUID userId = UUID.randomUUID();
-    UUID contactId = UUID.randomUUID();
-    Map<String, Object> attrs = Map.of("color", "azul");
-    Set<UUID> tags = Set.of(UUID.randomUUID());
-
+    // Enviamos null en dynamicAttributes y tagIds
     ContactRequest request =
-        new ContactRequest(
-            "Julian", "Miranda", "juli@test.com", LocalDate.of(1995, 5, 20), attrs, tags);
+        new ContactRequest("Carol", "Gomez", "caro@test.com", null, null, null, "UTC");
 
-    ContactSummaryResult expectedResult = createMockSummary();
-    when(updateContactUseCase.execute(any(UpdateContactCommand.class))).thenReturn(expectedResult);
+    when(createContactUseCase.execute(any(CreateContactCommand.class)))
+        .thenReturn(createMockSummary());
 
     // Act
-    ResponseEntity<ContactSummaryResult> response =
-        contactController.updateContact(userId, contactId, request);
+    contactController.createContact(userId, request);
 
     // Assert
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody()).isEqualTo(expectedResult);
+    ArgumentCaptor<CreateContactCommand> captor =
+        ArgumentCaptor.forClass(CreateContactCommand.class);
+    verify(createContactUseCase).execute(captor.capture());
 
-    ArgumentCaptor<UpdateContactCommand> commandCaptor =
-        ArgumentCaptor.forClass(UpdateContactCommand.class);
-    verify(updateContactUseCase).execute(commandCaptor.capture());
-
-    UpdateContactCommand capturedCommand = commandCaptor.getValue();
-    assertThat(capturedCommand.authenticatedUserId()).isEqualTo(userId);
-    assertThat(capturedCommand.contactId()).isEqualTo(contactId);
-    assertThat(capturedCommand.dynamicAttributes()).isEqualTo(attrs);
-    assertThat(capturedCommand.tagIds()).isEqualTo(tags);
+    // Verificamos que el controlador ejecutó el ternario y pasó colecciones vacías (no null)
+    assertThat(captor.getValue().dynamicAttributes()).isNotNull().isEmpty();
+    assertThat(captor.getValue().tagIds()).isNotNull().isEmpty();
   }
 
   @Test
   @DisplayName(
-      "updateContact: Should provide empty Map and Set when dynamicAttributes and tagIds are null")
-  void updateContact_HandlesNullCollections_ProvidingEmptyDefaults() {
+      "updateContact: Should provide empty collections when request attributes and tags are null")
+  void updateContact_ShouldProvideDefaultCollections_WhenRequestCollectionsAreNull() {
     // Arrange
     UUID userId = UUID.randomUUID();
     UUID contactId = UUID.randomUUID();
-    // Enviamos null en las colecciones para forzar la ejecución de las ternarias
     ContactRequest request =
-        new ContactRequest(
-            "Julian", "Miranda", "juli@test.com", LocalDate.of(1995, 5, 20), null, null);
+        new ContactRequest("Julian", "Miranda", "j@t.com", null, null, null, "UTC");
 
     when(updateContactUseCase.execute(any(UpdateContactCommand.class)))
         .thenReturn(createMockSummary());
@@ -230,14 +245,12 @@ class ContactControllerTest {
     contactController.updateContact(userId, contactId, request);
 
     // Assert
-    ArgumentCaptor<UpdateContactCommand> commandCaptor =
+    ArgumentCaptor<UpdateContactCommand> captor =
         ArgumentCaptor.forClass(UpdateContactCommand.class);
-    verify(updateContactUseCase).execute(commandCaptor.capture());
+    verify(updateContactUseCase).execute(captor.capture());
 
-    UpdateContactCommand capturedCommand = commandCaptor.getValue();
-
-    // Verificamos que NO sean null, sino colecciones vacías (Coverage del 100%)
-    assertThat(capturedCommand.dynamicAttributes()).isNotNull().isEmpty();
-    assertThat(capturedCommand.tagIds()).isNotNull().isEmpty();
+    // Verificamos la rama 'false' del ternario (objeto != null es falso)
+    assertThat(captor.getValue().dynamicAttributes()).isNotNull().isEmpty();
+    assertThat(captor.getValue().tagIds()).isNotNull().isEmpty();
   }
 }

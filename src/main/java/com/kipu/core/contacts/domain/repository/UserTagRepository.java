@@ -16,4 +16,6 @@ public interface UserTagRepository {
   void delete(UUID id);
 
   boolean existsByNameAndOwnerUserId(String name, UUID ownerUserId);
+
+  Optional<UserTag> findByOwnerUserIdAndNameIgnoreCase(UUID ownerUserId, String name);
 }

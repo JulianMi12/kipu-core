@@ -24,7 +24,7 @@ public final class Contact {
   private Set<UUID> tagIds;
   private final OffsetDateTime createdAt;
 
-  public static Contact createSelfContact(
+  public static Contact create(
       UUID ownerUserId,
       String firstName,
       String lastName,

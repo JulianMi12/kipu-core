@@ -47,7 +47,7 @@ class UserControllerTest {
 
     UserProfileResult result =
         new UserProfileResult(
-            userId, email, true, now, KycStatus.PENDING, false, "Julian", "Miranda");
+            userId, email, true, now, KycStatus.PENDING, false, "Julian", "Miranda", null);
     UserProfileResponse response =
         UserProfileResponse.builder().id(userId).email(email).active(true).createdAt(now).build();
 

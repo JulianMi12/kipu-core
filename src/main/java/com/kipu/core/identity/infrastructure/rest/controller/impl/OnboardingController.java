@@ -34,7 +34,11 @@ public class OnboardingController implements OnboardingApi {
     UserProfileResult result =
         completeOnboardingUseCase.execute(
             new CompleteOnboardingCommand(
-                userId, request.firstName(), request.lastName(), request.birthdate()));
+                userId,
+                request.firstName(),
+                request.lastName(),
+                request.birthdate(),
+                request.timezone()));
     return ResponseEntity.ok(userRestMapper.toUserProfileResponse(result));
   }
 }

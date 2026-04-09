@@ -31,8 +31,7 @@ class ContactTest {
 
     // Act
     Contact contact =
-        Contact.createSelfContact(
-            ownerUserId, firstName, lastName, email, birthdate, attributes, tags);
+        Contact.create(ownerUserId, firstName, lastName, email, birthdate, attributes, tags);
 
     // Assert
     assertNotNull(contact.getId());
@@ -80,8 +79,7 @@ class ContactTest {
   void update_ShouldModifyFields() {
     // Arrange
     Contact contact =
-        Contact.createSelfContact(
-            ownerUserId, firstName, lastName, email, birthdate, Map.of(), Set.of());
+        Contact.create(ownerUserId, firstName, lastName, email, birthdate, Map.of(), Set.of());
 
     String newFirstName = "Julian Updated";
     String newEmail = "updated@kipu.com";
@@ -130,8 +128,7 @@ class ContactTest {
 
     // Act
     Contact contact =
-        Contact.createSelfContact(
-            ownerUserId, firstName, lastName, email, birthdate, Map.of(), originalTags);
+        Contact.create(ownerUserId, firstName, lastName, email, birthdate, Map.of(), originalTags);
 
     // Modificamos la colección original
     originalTags.clear();
@@ -146,8 +143,7 @@ class ContactTest {
   void update_ShouldCreateIndependentHashSet() {
     // Arrange
     Contact contact =
-        Contact.createSelfContact(
-            ownerUserId, firstName, lastName, email, birthdate, Map.of(), Set.of());
+        Contact.create(ownerUserId, firstName, lastName, email, birthdate, Map.of(), Set.of());
 
     Set<UUID> newTags = new java.util.HashSet<>();
     UUID newTagId = UUID.randomUUID();

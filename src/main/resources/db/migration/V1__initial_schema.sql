@@ -1,7 +1,18 @@
 -- ==========================================
--- SCHEMA: identity
+-- PREPARACIÓN DE SCHEMAS
 -- ==========================================
+CREATE SCHEMA IF NOT EXISTS identity;
+CREATE SCHEMA IF NOT EXISTS contacts;
 
+-- ==========================================
+-- TIPOS ENUM (contacts)
+-- ==========================================
+CREATE TYPE contacts.event_recurrence_type AS ENUM ('ONCE', 'HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY');
+CREATE TYPE contacts.event_status AS ENUM ('PENDING', 'COMPLETED');
+
+-- ==========================================
+-- TABLAS: identity
+-- ==========================================
 CREATE TABLE identity.users (
     id            UUID PRIMARY KEY,
     email         VARCHAR(255) UNIQUE NOT NULL,
@@ -12,29 +23,33 @@ CREATE TABLE identity.users (
 
 CREATE TABLE identity.refresh_tokens (
     id          UUID PRIMARY KEY,
-    user_id     UUID NOT NULL REFERENCES identity.users(id) ON DELETE CASCADE,
+    user_id     UUID NOT NULL,
     token       VARCHAR(512) UNIQUE NOT NULL,
     expiry_date TIMESTAMPTZ NOT NULL,
     revoked     BOOLEAN DEFAULT FALSE
 );
 
--- ==========================================
--- SCHEMA: contacts
--- ==========================================
+CREATE TABLE identity.user_kyc (
+    user_id              UUID PRIMARY KEY,
+    self_contact_id      UUID UNIQUE,
+    status               VARCHAR(20) DEFAULT 'PENDING',
+    onboarding_completed BOOLEAN DEFAULT FALSE,
+    updated_at           TIMESTAMPTZ DEFAULT NOW()
+);
 
--- Tabla de Tags para categorizar contactos
+-- ==========================================
+-- TABLAS: contacts
+-- ==========================================
 CREATE TABLE contacts.user_tags (
     id            UUID PRIMARY KEY,
-    owner_user_id UUID NOT NULL REFERENCES identity.users(id) ON DELETE CASCADE,
+    owner_user_id UUID NOT NULL,
     name          VARCHAR(50) NOT NULL,
     color_hex     VARCHAR(7) DEFAULT '#0288d1'
 );
 
--- Tabla principal de Contactos
--- Nota: 'birthdate' ahora vive aquí como un atributo de la persona
 CREATE TABLE contacts.contacts (
     id                 UUID PRIMARY KEY,
-    owner_user_id      UUID NOT NULL REFERENCES identity.users(id) ON DELETE CASCADE,
+    owner_user_id      UUID NOT NULL,
     first_name         VARCHAR(100) NOT NULL,
     last_name          VARCHAR(100),
     primary_email      VARCHAR(255),
@@ -43,29 +58,30 @@ CREATE TABLE contacts.contacts (
     created_at         TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Relación Many-to-Many entre contactos y sus tags
 CREATE TABLE contacts.contact_tags (
-    contact_id UUID NOT NULL REFERENCES contacts.contacts(id) ON DELETE CASCADE,
-    tag_id     UUID NOT NULL REFERENCES contacts.user_tags(id) ON DELETE CASCADE,
+    contact_id UUID NOT NULL,
+    tag_id     UUID NOT NULL,
     PRIMARY KEY (contact_id, tag_id)
 );
 
--- ==========================================
--- SCHEMA: identity (Gestión de Estado de Usuario)
--- ==========================================
-
-CREATE TABLE identity.user_kyc (
-    user_id              UUID PRIMARY KEY REFERENCES identity.users(id) ON DELETE CASCADE,
-    self_contact_id      UUID UNIQUE REFERENCES contacts.contacts(id) ON DELETE SET NULL,
-    status               VARCHAR(20) DEFAULT 'PENDING',
-    onboarding_completed BOOLEAN DEFAULT FALSE,
+CREATE TABLE contacts.contact_events (
+    id                   UUID PRIMARY KEY,
+    contact_id           UUID NOT NULL,
+    title                VARCHAR(255) NOT NULL,
+    description          TEXT,
+    start_date_time      TIMESTAMPTZ NOT NULL,
+    alert_lead_time_days INT NOT NULL DEFAULT 0,
+    recurrence_type      contacts.event_recurrence_type NOT NULL DEFAULT 'ONCE',
+    recurrence_interval  INT NOT NULL DEFAULT 0,
+    status               contacts.event_status NOT NULL DEFAULT 'PENDING',
+    last_completed_date  TIMESTAMPTZ,
+    timezone             VARCHAR(50) DEFAULT 'UTC',
+    created_at           TIMESTAMPTZ DEFAULT NOW(),
     updated_at           TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ==========================================
--- ÍNDICES PARA RENDIMIENTO
--- ==========================================
-CREATE INDEX idx_users_email ON identity.users(email);
-CREATE INDEX idx_refresh_tokens_user ON identity.refresh_tokens(user_id);
-CREATE INDEX idx_contacts_owner ON contacts.contacts(owner_user_id);
-CREATE INDEX idx_tags_owner ON contacts.user_tags(owner_user_id);
+CREATE TABLE contacts.event_tags (
+    event_id UUID NOT NULL,
+    tag_id   UUID NOT NULL,
+    PRIMARY KEY (event_id, tag_id)
+);

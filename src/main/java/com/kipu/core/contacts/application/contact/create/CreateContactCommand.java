@@ -12,4 +12,5 @@ public record CreateContactCommand(
     String primaryEmail,
     LocalDate birthdate,
     Map<String, Object> dynamicAttributes,
-    Set<UUID> tagIds) {}
+    Set<UUID> tagIds,
+    String timezone) {}

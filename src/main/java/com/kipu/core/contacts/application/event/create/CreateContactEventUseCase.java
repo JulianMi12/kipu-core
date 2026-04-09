@@ -42,16 +42,20 @@ public class CreateContactEventUseCase {
             command.contactId(),
             command.title(),
             command.description(),
-            command.baseDate(),
+            command.startDateTime(),
             command.alertLeadTimeDays(),
             command.recurrenceType(),
+            command.recurrenceInterval(),
+            command.timezone(),
             command.tagIds());
 
     ContactEvent savedEvent = contactEventRepository.save(event);
 
     log.info(
-        "[CreateContactEventUseCase] Process completed successfully for id: {}",
-        savedEvent.getId());
+        "[CreateContactEventUseCase] Event created successfully with id: {} for contact: {}",
+        savedEvent.getId(),
+        command.contactId());
+
     return CreateContactEventResult.from(savedEvent);
   }
 }

@@ -34,4 +34,11 @@ public class JpaContactEventRepositoryAdapter implements ContactEventRepository 
   public void delete(UUID id) {
     jpaContactEventRepository.deleteById(id);
   }
+
+  @Override
+  public Optional<ContactEvent> findByContactIdAndTagIdsContains(UUID contactId, UUID tagId) {
+    return jpaContactEventRepository
+        .findByContactIdAndTagId(contactId, tagId)
+        .map(ContactEventJpaEntity::toDomain);
+  }
 }

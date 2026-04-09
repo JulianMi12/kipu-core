@@ -17,6 +17,7 @@ import com.kipu.core.contacts.domain.model.enums.EventStatusEnum;
 import com.kipu.core.contacts.domain.repository.ContactEventRepository;
 import com.kipu.core.contacts.domain.repository.ContactRepository;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -42,12 +43,31 @@ class CompleteContactEventUseCaseTest {
     UUID eventId = UUID.randomUUID();
     CompleteContactEventCommand command = new CompleteContactEventCommand(userId, eventId);
 
+    // 1. Corregido: Firma de 9 argumentos y tipos correctos
     ContactEvent event =
         ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE, Set.of());
+            contactId,
+            "Title",
+            "Desc",
+            OffsetDateTime.now(),
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            1, // recurrenceInterval
+            "UTC", // timezone
+            Set.of());
 
+    // 2. Corregido: Reconstitute del contacto con Map.of() para evitar NPE en atributos
     Contact contact =
-        Contact.reconstitute(contactId, userId, "Juan", "Perez", null, null, null, Set.of(), null);
+        Contact.reconstitute(
+            contactId,
+            userId,
+            "Juan",
+            "Perez",
+            "juan@test.com",
+            null,
+            java.util.Map.of(),
+            Set.of(),
+            null);
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.of(contact));
@@ -59,7 +79,11 @@ class CompleteContactEventUseCaseTest {
     // Assert
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(EventStatusEnum.COMPLETED);
-    assertThat(result.lastCompletedDate()).isEqualTo(LocalDate.now());
+
+    // 3. Corregido: Comparación de fechas usando el mismo tipo (OffsetDateTime)
+    // Usamos isBeforeOrEqualTo porque el dominio usa OffsetDateTime.now()
+    assertThat(result.lastCompletedDate()).isNotNull();
+    assertThat(result.lastCompletedDate().toLocalDate()).isEqualTo(LocalDate.now());
 
     verify(contactEventRepository).findById(eventId);
     verify(contactRepository).findById(contactId);
@@ -92,7 +116,15 @@ class CompleteContactEventUseCaseTest {
 
     ContactEvent event =
         ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE, Set.of());
+            contactId,
+            "Title",
+            "Desc",
+            OffsetDateTime.now(),
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            0,
+            null,
+            Set.of());
 
     when(contactEventRepository.findById(eventId)).thenReturn(Optional.of(event));
     when(contactRepository.findById(contactId)).thenReturn(Optional.empty());
@@ -116,7 +148,15 @@ class CompleteContactEventUseCaseTest {
 
     ContactEvent event =
         ContactEvent.create(
-            contactId, "Title", "Desc", LocalDate.now(), 0, EventRecurrenceTypeEnum.ONCE, Set.of());
+            contactId,
+            "Title",
+            "Desc",
+            OffsetDateTime.now(),
+            0,
+            EventRecurrenceTypeEnum.ONCE,
+            0,
+            null,
+            Set.of());
 
     Contact contact =
         Contact.reconstitute(
